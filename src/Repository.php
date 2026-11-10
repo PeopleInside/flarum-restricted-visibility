@@ -185,7 +185,9 @@ final class Repository
                 });
             })
             ->groupBy('posts.discussion_id')
-            ->selectRaw('posts.discussion_id as did, COUNT(*) as c')
+            // select() (non selectRaw): così il prefisso delle tabelle viene applicato alla colonna.
+            ->select('posts.discussion_id as did')
+            ->selectRaw('COUNT(*) as c')
             ->get();
 
         foreach ($rows as $r) {

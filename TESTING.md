@@ -5,6 +5,7 @@ Preparazione: 4 utenti — **admin**, **mod** (permesso "Vedere tutti"), **alice
 Mentions, Likes, Tags, Flags. Imposta una mail reale o un log mail.
 
 ## 1. Installazione
+- [ ] **Prova con un prefisso tabelle** (es. `flma_` in `config.php`): i frammenti SQL grezzi non vengono prefissati e un errore qui dà 500 su tutta la home.
 - [ ] `php flarum migrate` termina senza errori (verifica in particolare le foreign key: tipi di colonna `unsignedInteger`).
 - [ ] L'estensione si abilita; il pannello admin mostra i due permessi e la "Zona pericolosa".
 
