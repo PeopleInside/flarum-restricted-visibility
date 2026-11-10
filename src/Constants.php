@@ -11,4 +11,7 @@ final class Constants
     public const MAX_GROUPS = 50;
     public const MAX_USERS = 100;
     public const MODES = ['hide', 'delete', 'public'];
+    public const SETTING_BUTTON_POSITION = 'peopleinside-restricted-visibility.composer_button_position';
+    public const BUTTON_POSITIONS = ['before_submit', 'after_submit', 'after_preview'];
+    public const BUTTON_POSITION_DEFAULT = 'after_submit';
 }
