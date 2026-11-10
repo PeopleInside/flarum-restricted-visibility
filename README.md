@@ -121,3 +121,8 @@ Consigliato su forum grandi: evita i timeout delle richieste web. Dopo il comand
 5. **Chi ha il permesso può restringere i post altrui?** No, solo i propri; i moderatori con il bypass possono agire su tutti,
    anche togliendo una restrizione impostata da un altro.
 6. La rimozione in modalità `hide`/`delete` dal pannello web su forum molto grandi può andare in timeout: usa il comando CLI.
+
+## Sicurezza
+
+Per segnalare una vulnerabilità segui la policy di sicurezza del repository
+(scheda **Security** su GitHub, file `SECURITY.md`) e non aprire una issue pubblica.

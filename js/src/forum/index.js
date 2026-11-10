@@ -5,18 +5,18 @@ import Discussion from 'flarum/common/models/Discussion';
 import Post from 'flarum/common/models/Post';
 import Badge from 'flarum/common/components/Badge';
 import Button from 'flarum/common/components/Button';
-import TextEditor from 'flarum/common/components/TextEditor';
-import DiscussionComposer from 'flarum/forum/components/DiscussionComposer';
-import ReplyComposer from 'flarum/forum/components/ReplyComposer';
-import EditPostComposer from 'flarum/forum/components/EditPostComposer';
-import CommentPost from 'flarum/forum/components/CommentPost';
-import PostControls from 'flarum/forum/utils/PostControls';
-import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
 
 import VisibilityModal from './components/VisibilityModal';
 
 const ID = 'peopleinside-restricted-visibility';
 
+/*
+ * Flarum 2.x carica "a richiesta" molti moduli (composer, editor, post, utility dei menu).
+ * Non si possono importare e usare subito con `X.prototype`: per questi moduli si passa il
+ * percorso come stringa a `extend` (il callback parte quando il modulo viene caricato) oppure
+ * si usa `import()` asincrono. Solo i moduli sempre presenti (modelli, Badge, Button) restano
+ * importati normalmente.
+ */
 app.initializers.add(ID, () => {
   // ---- modelli
   for (const Klass of [Discussion, Post]) {
@@ -46,8 +46,8 @@ app.initializers.add(ID, () => {
     );
   });
 
-  // ---- etichetta sui post riservati
-  extend(CommentPost.prototype, 'headerItems', function (items) {
+  // ---- etichetta sui post riservati (CommentPost è un modulo differito)
+  extend('flarum/forum/components/CommentPost', 'headerItems', function (items) {
     const post = this.attrs.post;
     if (!post.isRestricted?.()) return;
 
@@ -63,7 +63,7 @@ app.initializers.add(ID, () => {
       : app.translator.trans(ID + '.forum.post.restricted');
 
     items.add(
-      'peopleinside-restricted',
+      'restricted',
       <span className="Post-restricted" title={label}>
         <i className="fas fa-eye-slash" /> {label}
       </span>,
@@ -71,18 +71,17 @@ app.initializers.add(ID, () => {
     );
   });
 
-  // ---- composer: pulsante + stato in app.composer.fields
-  const composerOk = () =>
-    app.composer.bodyMatches(DiscussionComposer) || app.composer.bodyMatches(ReplyComposer) || app.composer.bodyMatches(EditPostComposer);
+  // ---- composer: pulsante + stato in composer.fields
+  extend('flarum/common/components/TextEditor', 'controlItems', function (items) {
+    const composer = this.attrs.composer;
+    // Solo l'editor del composer principale (nuova discussione, risposta, modifica).
+    if (!canUse() || !composer || composer !== app.composer) return;
 
-  extend(TextEditor.prototype, 'controlItems', function (items) {
-    if (!canUse() || !composerOk()) return;
-
-    const f = app.composer.fields;
+    const f = composer.fields;
     const active = (f.restrictedGroupIds || []).length + (f.restrictedUserIds || []).length > 0;
 
     items.add(
-      'peopleinside-restrict',
+      'restrict-visibility',
       <Button
         icon="fas fa-eye-slash"
         className={'Button Button--icon' + (active ? ' Button--restricted' : '')}
@@ -107,18 +106,18 @@ app.initializers.add(ID, () => {
 
   const addData = function (data) {
     const f = app.composer.fields;
-    // Si invia solo se l'utente ha toccato/ha una restrizione: chi non può restringere non invia nulla.
+    // Si invia solo se esiste una scelta: chi non può restringere non invia nulla.
     if (f.restrictedGroupIds !== undefined || f.restrictedUserIds !== undefined) {
       data.restrictedGroupIds = f.restrictedGroupIds || [];
       data.restrictedUserIds = f.restrictedUserIds || [];
     }
   };
-  extend(DiscussionComposer.prototype, 'data', addData);
-  extend(ReplyComposer.prototype, 'data', addData);
-  extend(EditPostComposer.prototype, 'data', addData);
+  extend('flarum/forum/components/DiscussionComposer', 'data', addData);
+  extend('flarum/forum/components/ReplyComposer', 'data', addData);
+  extend('flarum/forum/components/EditPostComposer', 'data', addData);
 
   // In modifica, precompila con i valori attuali (solo se l'utente può gestirli).
-  extend(EditPostComposer.prototype, 'oninit', function () {
+  extend('flarum/forum/components/EditPostComposer', 'oninit', function () {
     const post = this.attrs.post;
     if (!post.canRestrictVisibility?.()) return;
     const f = this.attrs.composer.fields;
@@ -127,7 +126,7 @@ app.initializers.add(ID, () => {
     f.restrictedUserIds = f.restrictedUsers.map((u) => u.id);
   });
 
-  // ---- menu del post / della discussione
+  // ---- menu del post / della discussione (utility differite: import asincrono)
   const openFor = (model) =>
     app.modal.show(VisibilityModal, {
       groupIds: model.restrictedGroupIds?.() || [],
@@ -139,23 +138,27 @@ app.initializers.add(ID, () => {
           .catch(() => {}),
     });
 
-  extend(PostControls, 'moderationControls', function (items, post) {
-    if (!post.canRestrictVisibility?.()) return;
-    items.add(
-      'peopleinside-restrict',
-      <Button icon="fas fa-eye-slash" onclick={() => openFor(post)}>
-        {app.translator.trans(ID + '.forum.controls.restrict')}
-      </Button>
-    );
+  import('flarum/forum/utils/PostControls').then(({ default: PostControls }) => {
+    extend(PostControls, 'moderationControls', function (items, post) {
+      if (!post.canRestrictVisibility?.()) return;
+      items.add(
+        'restrict-visibility',
+        <Button icon="fas fa-eye-slash" onclick={() => openFor(post)}>
+          {app.translator.trans(ID + '.forum.controls.restrict')}
+        </Button>
+      );
+    });
   });
 
-  extend(DiscussionControls, 'moderationControls', function (items, discussion) {
-    if (!discussion.canRestrictVisibility?.()) return;
-    items.add(
-      'peopleinside-restrict',
-      <Button icon="fas fa-eye-slash" onclick={() => openFor(discussion)}>
-        {app.translator.trans(ID + '.forum.controls.restrict')}
-      </Button>
-    );
+  import('flarum/forum/utils/DiscussionControls').then(({ default: DiscussionControls }) => {
+    extend(DiscussionControls, 'moderationControls', function (items, discussion) {
+      if (!discussion.canRestrictVisibility?.()) return;
+      items.add(
+        'restrict-visibility',
+        <Button icon="fas fa-eye-slash" onclick={() => openFor(discussion)}>
+          {app.translator.trans(ID + '.forum.controls.restrict')}
+        </Button>
+      );
+    });
   });
 });
