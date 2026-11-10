@@ -33,10 +33,15 @@ This extension is not compatible with Flarum 1.x.
 <img width="1636" height="667" alt="Screenshot 2026-11-10 233810" src="https://github.com/user-attachments/assets/0dc2090c-a55f-4acf-8154-8e12abfe53c0" />
 
 ### Composing message interface
-Flarum discussion composer interface. 
+Flarum discussion composer interface.
+By default the eye icon is showed after the 'Post Discussion' or the 'Post Reply' but can be moved in the extension settings.
 Note the crossed-out eye icon button positioned immediately before the 'Post Discussion' button. This control allows the user to toggle and activate visibility restrictions for the topic before publishing.
 
 <img width="1110" height="341" alt="Screenshot 2026-11-10 233350" src="https://github.com/user-attachments/assets/a01f0a2e-0efd-44e0-9bc0-87f3343580f8" />
+...
+<img width="1111" height="334" alt="Screenshot 2026-11-11 001640" src="https://github.com/user-attachments/assets/819f16af-4039-41bd-95c6-e155cb57ed1a" />
+...
+<img width="1130" height="349" alt="Screenshot 2026-11-11 001713" src="https://github.com/user-attachments/assets/4a964a79-8827-41db-8592-deb169fd9561" />
 
 ### When the eye icon is clicked on the composing window
 you can see a Pop-up with options
