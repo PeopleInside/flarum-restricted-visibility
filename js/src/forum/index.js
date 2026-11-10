@@ -46,29 +46,79 @@ app.initializers.add(ID, () => {
     );
   });
 
-  // ---- etichetta sui post riservati (CommentPost è un modulo differito)
-  extend('flarum/forum/components/CommentPost', 'headerItems', function (items) {
-    const post = this.attrs.post;
-    if (!post.isRestricted?.()) return;
+  // ---- etichette sui post (CommentPost è un modulo differito)
+  /*
+   * Il traduttore di Flarum 2.x può restituire un array di frammenti invece di una stringa.
+   * Messo in un attributo (title) un array viene convertito con le virgole ("Riservato a: ,@MaBo"),
+   * quindi per i tooltip si ricava sempre testo semplice.
+   */
+  const plain = (x) => {
+    if (x == null || typeof x === 'boolean') return '';
+    if (Array.isArray(x)) return x.map(plain).join('');
+    if (typeof x === 'object') return x.tag === '#' ? String(x.children) : plain(x.children ?? x.text);
+    return String(x);
+  };
 
+  // Nomi dei destinatari: gruppi + utenti. La virgola compare solo tra un nome e il successivo.
+  const recipientNames = (model) => {
     const names = [];
-    (post.restrictedGroupIds?.() || []).forEach((id) => {
+    (model.restrictedGroupIds?.() || []).forEach((id) => {
       const g = app.store.getById('groups', String(id));
       if (g) names.push(g.namePlural());
     });
-    (post.restrictedUsers?.() || []).forEach((u) => names.push('@' + u.name));
+    (model.restrictedUsers?.() || []).forEach((u) => names.push('@' + u.name));
+    return names;
+  };
 
-    const label = names.length
-      ? app.translator.trans(ID + '.forum.post.restricted_to', { names: names.join(', ') })
-      : app.translator.trans(ID + '.forum.post.restricted');
+  const restrictedLabel = (names, keyTo, keyGeneric) =>
+    plain(names.length ? app.translator.trans(ID + keyTo, { names: names.join(', ') }) : app.translator.trans(ID + keyGeneric));
 
-    items.add(
-      'restricted',
-      <span className="Post-restricted" title={label}>
-        <i className="fas fa-eye-slash" /> {label}
-      </span>,
-      -10
-    );
+  extend('flarum/forum/components/CommentPost', 'headerItems', function (items) {
+    const post = this.attrs.post;
+    const discussion = post.discussion?.();
+    const discussionRestricted = !!discussion?.isRestricted?.();
+    const postRestricted = !!post.isRestricted?.();
+
+    // 1) Restrizione propria del post (viola).
+    if (postRestricted) {
+      const label = restrictedLabel(recipientNames(post), '.forum.post.restricted_to', '.forum.post.restricted');
+      items.add(
+        'restricted',
+        <span className="Post-restricted" title={label}>
+          <i className="fas fa-eye-slash" /> {label}
+        </span>,
+        -10
+      );
+    }
+
+    if (!discussionRestricted) return;
+
+    // 2) Primo messaggio: mostra a chi è riservata l'intera discussione (viola).
+    if (Number(post.number?.()) === 1) {
+      const label = restrictedLabel(recipientNames(discussion), '.forum.post.discussion_restricted_to', '.forum.post.discussion_restricted');
+      items.add(
+        'restricted-discussion',
+        <span className="Post-restricted Post-restricted--discussion" title={label}>
+          <i className="fas fa-eye-slash" /> {label}
+        </span>,
+        -11
+      );
+      return;
+    }
+
+    // 3) Messaggio senza restrizione propria in una discussione riservata: icona discreta, diversa
+    //    dall'etichetta viola. Dice che il messaggio è "pubblico" ma limitato dalla discussione;
+    //    se la discussione tornasse pubblica, questo messaggio sarebbe visibile a tutti.
+    if (!postRestricted) {
+      const title = plain(app.translator.trans(ID + '.forum.post.limited_by_discussion'));
+      items.add(
+        'restricted-by-discussion',
+        <span className="Post-restrictedByDiscussion" data-tip={title} aria-label={title} tabindex="0" role="img">
+          <i className="far fa-eye-slash" />
+        </span>,
+        -11
+      );
+    }
   });
 
   // ---- composer: pulsante + stato in composer.fields

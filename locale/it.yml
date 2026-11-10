@@ -6,6 +6,9 @@ peopleinside-restricted-visibility:
     post:
       restricted: "Riservato"
       restricted_to: "Riservato a: {names}"
+      discussion_restricted_to: "Discussione riservata a: {names}"
+      discussion_restricted: "Discussione riservata"
+      limited_by_discussion: "Messaggio pubblico, ma limitato dalla visibilità della discussione. Se la discussione torna pubblica, questo messaggio sarà visibile a tutti."
     composer:
       button: "Chi può vederlo?"
     controls:
