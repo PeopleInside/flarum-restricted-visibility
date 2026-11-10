@@ -81,7 +81,7 @@ final class Repository
         return $rows['groups'] !== [] || $rows['users'] !== [];
     }
 
-    /** @return array<int, array{id: int, name: string}> solo utenti visibili a $actor. */
+    /** @return array<int, array{id: int, name: string, avatarUrl: ?string}> solo utenti visibili a $actor. */
     public static function userInfo(array $ids, User $actor): array
     {
         if ($ids === []) {
@@ -89,7 +89,12 @@ final class Repository
         }
 
         return User::query()->whereVisibleTo($actor)->whereIn('id', $ids)->get()
-            ->map(fn (User $u) => ['id' => (int) $u->id, 'name' => (string) $u->display_name])
+            ->map(fn (User $u) => [
+                'id' => (int) $u->id,
+                'name' => (string) $u->display_name,
+                // Letto dall'utente a ogni richiesta (nessuna copia salvata): segue i cambi di avatar.
+                'avatarUrl' => $u->avatar_url ?: null,
+            ])
             ->values()->all();
     }
 

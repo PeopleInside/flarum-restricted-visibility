@@ -2,11 +2,13 @@ import app from 'flarum/forum/app';
 import Modal from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 
+import miniAvatar from '../helpers/miniAvatar';
+
 const T = 'peopleinside-restricted-visibility.forum.modal.';
 const GUEST_GROUP_ID = '2';
 
 /**
- * attrs: { groupIds: string[]|number[], users: {id, name}[], onsave(groupIds: string[], users: {id,name}[]) }
+ * attrs: { groupIds: string[]|number[], users: {id, name, avatarUrl}[], onsave(groupIds: string[], users: {id,name,avatarUrl}[]) }
  */
 export default class VisibilityModal extends Modal {
   oninit(vnode) {
@@ -67,7 +69,8 @@ export default class VisibilityModal extends Modal {
               <div className="PeopleInsideVisibilityModal-chips">
                 {this.users.map((u) => (
                   <span className="PeopleInsideVisibilityModal-chip">
-                    {u.name}
+                    {miniAvatar(u)}
+                    <span className="PeopleInsideVisibilityModal-chipName">{u.name}</span>
                     <button type="button" className="Button Button--icon Button--link" onclick={() => this.removeUser(u.id)} aria-label="remove">
                       <i className="fas fa-times" />
                     </button>
@@ -85,8 +88,10 @@ export default class VisibilityModal extends Modal {
                 <ul className="Dropdown-menu PeopleInsideVisibilityModal-results" style="display:block;position:static;margin-top:4px">
                   {this.results.map((u) => (
                     <li>
-                      <button type="button" className="Button Button--link" onclick={() => this.addUser(u)}>
-                        {u.displayName()}
+                      <button type="button" className="Button Button--link PeopleInsideVisibilityModal-result" onclick={() => this.addUser(u)}>
+                        {miniAvatar(u)}
+                        <span className="PeopleInsideVisibilityModal-resultName">{u.displayName()}</span>
+                        {u.username() !== u.displayName() && <span className="PeopleInsideVisibilityModal-resultUsername">@{u.username()}</span>}
                       </button>
                     </li>
                   ))}
@@ -129,7 +134,7 @@ export default class VisibilityModal extends Modal {
 
   addUser(user) {
     if (!this.users.some((u) => String(u.id) === user.id())) {
-      this.users.push({ id: user.id(), name: user.displayName() });
+      this.users.push({ id: user.id(), name: user.displayName(), avatarUrl: user.avatarUrl() });
     }
     this.query = '';
     this.results = [];
