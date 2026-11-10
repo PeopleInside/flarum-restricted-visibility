@@ -113,7 +113,7 @@ app.initializers.add(ID, () => {
       const title = plain(app.translator.trans(ID + '.forum.post.limited_by_discussion'));
       items.add(
         'restricted-by-discussion',
-        <span className="Post-restrictedByDiscussion" title={title} aria-label={title}>
+        <span className="Post-restrictedByDiscussion" data-tip={title} aria-label={title} tabindex="0" role="img">
           <i className="far fa-eye-slash" />
         </span>,
         -11

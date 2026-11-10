@@ -14,14 +14,48 @@
 }
 
 .Post-restrictedByDiscussion {
+  position: relative;
   display: inline-block;
   margin-left: 8px;
   font-size: 12px;
   color: #7b4fc9;
   opacity: 0.6;
   cursor: help;
-  &:hover {
+
+  // Tooltip in CSS: non dipende dal tooltip nativo del browser né da quello di Flarum.
+  &::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    margin-top: 6px;
+    width: 260px;
+    max-width: 70vw;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #222;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: normal;
+    white-space: normal;
+    text-align: left;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+
+  &:hover,
+  &:focus {
     opacity: 1;
+    outline: none;
+    &::after {
+      opacity: 1;
+      visibility: visible;
+    }
   }
 }
 
