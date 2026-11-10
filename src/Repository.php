@@ -286,6 +286,21 @@ final class Repository
         self::forget($model);
     }
 
+    /** Scrive su database i valori in sospeso del modello (chiamato dagli eventi di salvataggio). */
+    public static function flush(AbstractModel $model): void
+    {
+        $pending = Pending::get($model);
+        if ($pending === null || (int) $model->getKey() <= 0) {
+            return;
+        }
+        foreach (['groups', 'users'] as $part) {
+            if ($pending[$part] !== null && ! $pending['done'][$part]) {
+                self::replace($model, $part, $pending[$part]);
+                Pending::markDone($model, $part);
+            }
+        }
+    }
+
     private static function forget(AbstractModel $model): void
     {
         if ($model instanceof Post) {

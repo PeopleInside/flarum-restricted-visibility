@@ -45,21 +45,31 @@ class RecipientFilter
     }
 
     /**
-     * Soggetto della notifica più ogni Post/Discussion pubblico del blueprint
-     * (es. NewPostBlueprint ha come soggetto la discussione ma contiene il post).
+     * Soggetto della notifica più OGNI Post/Discussion contenuto nel blueprint, qualunque sia la
+     * visibilità della proprietà (public, protected, private) e anche se dichiarata in una classe
+     * padre. Serve perché, ad esempio, il blueprint di una nuova risposta ha come soggetto la
+     * discussione (pubblica) ma contiene il post (riservato) di cui viene inviato il testo.
      *
      * @return array<Post|Discussion>
      */
     private function models(BlueprintInterface $blueprint): array
     {
         $found = [];
-        $subject = $blueprint->getSubject();
-        if ($subject instanceof Post || $subject instanceof Discussion) {
-            $found[spl_object_id($subject)] = $subject;
-        }
-        foreach (get_object_vars($blueprint) as $value) {
+        $add = function ($value) use (&$found) {
             if ($value instanceof Post || $value instanceof Discussion) {
                 $found[spl_object_id($value)] = $value;
+            }
+        };
+
+        $add($blueprint->getSubject());
+
+        for ($class = new \ReflectionClass($blueprint); $class !== false; $class = $class->getParentClass()) {
+            foreach ($class->getProperties() as $property) {
+                if ($property->isStatic() || ! $property->isInitialized($blueprint)) {
+                    continue;
+                }
+                $property->setAccessible(true);
+                $add($property->getValue($blueprint));
             }
         }
 

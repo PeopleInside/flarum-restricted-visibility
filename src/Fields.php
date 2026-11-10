@@ -29,11 +29,9 @@ final class Fields
                 ->visible($mayInspect)
                 ->get(fn (AbstractModel $m) => Repository::rows($m)['groups'])
                 ->set(function (AbstractModel $m, $value, Context $c) {
+                    // Valida ora; la scrittura avviene dentro save() (ModelHooks), prima delle notifiche.
+                    ModelHooks::ensure($m);
                     Pending::put($m, 'groups', Repository::sanitizeGroups($c->getActor(), $value));
-                })
-                ->save(function (AbstractModel $m, $value, Context $c) {
-                    $ids = Pending::part($m, 'groups') ?? Repository::sanitizeGroups($c->getActor(), $value);
-                    Repository::replace($m, 'groups', $ids);
                 }),
 
             Schema\Arr::make('restrictedUserIds')
@@ -42,11 +40,8 @@ final class Fields
                 ->visible($mayInspect)
                 ->get(fn (AbstractModel $m) => Repository::rows($m)['users'])
                 ->set(function (AbstractModel $m, $value, Context $c) {
+                    ModelHooks::ensure($m);
                     Pending::put($m, 'users', Repository::sanitizeUsers($c->getActor(), $value));
-                })
-                ->save(function (AbstractModel $m, $value, Context $c) {
-                    $ids = Pending::part($m, 'users') ?? Repository::sanitizeUsers($c->getActor(), $value);
-                    Repository::replace($m, 'users', $ids);
                 }),
 
             // Solo lettura: nomi per l'interfaccia, limitati agli utenti che l'attore può vedere.

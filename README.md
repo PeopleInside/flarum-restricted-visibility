@@ -102,8 +102,12 @@ Consigliato su forum grandi: evita i timeout delle richieste web. Dopo il comand
 - **Scrittura protetta**: i campi sono scrivibili solo con permesso + (autore o bypass); gruppi e utenti sono validati
   (esistenti, visibili all'attore, con limiti di 50 e 100); in caso di errore la richiesta fallisce, non si scarta in silenzio.
 - **Notifiche**: filtro centralizzato (`Notification::beforeSending`) prima di qualunque driver, quindi vale per campanella ed
-  email. Controlla soggetto e tutti i post/discussioni contenuti nel blueprint (es. risposta e post menzionato). Le restrizioni
-  non ancora scritte nel DB sono tenute in memoria per evitare che la notifica parta prima del salvataggio.
+  email e per tutte le estensioni che usano il sistema di notifiche di Flarum (iscrizioni "Segui", menzioni, FoF Subscribed, ...).
+  Il filtro legge **tutti** i post e le discussioni contenuti nel blueprint, anche in proprietà `protected`/`private`, perché ad
+  esempio la notifica di una nuova risposta ha come soggetto la discussione ma contiene il post di cui invia il testo.
+- **Scrittura durante il salvataggio**: le restrizioni vengono scritte nel database dagli eventi Eloquent `created`/`saved`,
+  cioè dentro `save()`, prima che Flarum invii gli eventi di dominio. Con la coda `sync` le notifiche partono subito e rileggono
+  il post dal database: se le righe non fossero già presenti, l'email con il testo arriverebbe a chi non può vedere il post.
 - **Rimozione dati**: solo amministratori, protetta da CSRF di Flarum, conferma testuale verificata anche lato server
   (`hash_equals`), transazione unica.
 - **Foreign key con `ON DELETE CASCADE`**: cancellando un post, una discussione, un utente o un gruppo, le righe collegate spariscono.

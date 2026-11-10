@@ -26,6 +26,17 @@ Mentions, Likes, Tags, Flags. Imposta una mail reale o un log mail.
 - [ ] Nuova discussione riservata con tag seguito da bob: nessuna notifica a bob.
 - [ ] Restringere un post già pubblicato non genera notifiche a chi ne è escluso.
 
+### Diagnosi se una notifica arriva comunque
+Sostituisci `PREFISSO_` con il prefisso delle tue tabelle (es. `flma`).
+```sql
+-- la restrizione è stata scritta? (deve esserci una riga per il post riservato)
+SELECT * FROM PREFISSO_restricted_post_groups;  SELECT * FROM PREFISSO_restricted_post_users;
+-- che tipo di notifica è arrivata e per quale soggetto?
+SELECT id, type, user_id, from_user_id, subject_id, created_at FROM PREFISSO_notifications ORDER BY id DESC LIMIT 5;
+```
+`type = newPost` è l'iscrizione "Segui" di Flarum; i tipi di FoF Subscribed hanno un prefisso `fof-subscribed`/simile.
+Se la riga di restrizione esiste ma la notifica è partita, il filtro non è stato eseguito o non ha visto il post.
+
 ## 4. Badge
 - [ ] bob: nessun badge, `restrictedPostCount` = 0 nella risposta API.
 - [ ] carla/alice: badge viola con occhio barrato e conteggio corretto; distinto dal lucchetto di "bloccata".
