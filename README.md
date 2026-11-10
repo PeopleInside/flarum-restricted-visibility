@@ -274,7 +274,6 @@ For bug reports and feature requests, you can also use the repository's [GitHub 
 
 - [GitHub repository](https://github.com/PeopleInside/flarum-restricted-visibility)
 - [Packagist package](https://packagist.org/packages/peopleinside/flarum-restricted-visibility)
-- [Flarum extension listing](https://flarum.org/extension/peopleinside/flarum-restricted-visibility)
 
 ## License
 
