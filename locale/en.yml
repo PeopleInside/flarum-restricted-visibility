@@ -1,0 +1,46 @@
+peopleinside-restricted-visibility:
+  forum:
+    badge:
+      discussion: "Restricted discussion"
+      posts: "{count, plural, one {# restricted message} other {# restricted messages}}"
+    post:
+      restricted: "Restricted"
+      restricted_to: "Restricted to: {names}"
+    composer:
+      button: "Who can see this?"
+    controls:
+      restrict: "Change visibility…"
+    modal:
+      title: "Who can see this?"
+      everyone: "Everyone who can already see the discussion"
+      only_some: "Only selected groups or users"
+      groups: "Groups"
+      users: "Users"
+      search_placeholder: "Search a user…"
+      help: "You and moderators will always see it. People who cannot see it receive no alert and no email. This can only narrow visibility, never widen it."
+      empty_error: "Choose at least one group or user, or select \"Everyone\"."
+      save: "Apply"
+  admin:
+    permissions:
+      restrict: "Restrict visibility of own posts and discussions"
+      view_all: "See all restricted content"
+    danger:
+      title: "Danger zone"
+      help: "Deletes all visibility restrictions, permissions and settings of this extension. Do this BEFORE disabling or removing it."
+      button: "Delete all extension data…"
+    purge:
+      title: "Delete all extension data"
+      summary: "{discussions} discussions and {posts} posts are restricted ({groups} group links, {users} user links)."
+      choose: "What should happen to restricted content?"
+      mode_hide: "Hide (recommended)"
+      mode_hide_help: "Marks it as hidden: only moderators can see it. Nothing is lost."
+      mode_delete: "Delete permanently"
+      mode_delete_help: "Removes restricted posts and discussions for good."
+      mode_public: "Make public"
+      mode_public_help: "Only removes the restrictions: everyone will see this content."
+      warning: "This operation is irreversible. All restrictions, permissions and settings will be deleted. If you do not choose to hide or delete restricted content, it will become visible to everyone. Back up your database first. Afterwards disable the extension; it will not protect anything until restrictions are set again."
+      type_to_confirm: "Type {word} to continue"
+      run: "Delete data"
+      done: "Done. Discussions affected: {discussions}, posts affected: {posts}."
+      next_steps: "Next: 1) disable the extension, 2) click \"Delete data\" on the extension page to drop its tables, 3) composer remove peopleinside/flarum-restricted-visibility."
+      close: "Close"
