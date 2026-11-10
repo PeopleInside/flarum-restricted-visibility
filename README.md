@@ -1,132 +1,284 @@
-# Restricted Visibility per Flarum 2.x
+# Restricted Visibility for Flarum 2.x
 
-Permette di rendere **singoli post** o **intere discussioni** visibili solo a certi **gruppi** o **utenti**.
-Chi non ha il permesso di vederli **non li vede da nessuna parte** (discussione, ricerca, profilo) e **non riceve
-né notifiche né email**, nemmeno se è iscritto alla discussione.
+[![Latest Stable Version](https://img.shields.io/packagist/v/peopleinside/flarum-restricted-visibility?label=Packagist)](https://packagist.org/packages/peopleinside/flarum-restricted-visibility)
+[![Total Downloads](https://img.shields.io/packagist/dt/peopleinside/flarum-restricted-visibility)](https://packagist.org/packages/peopleinside/flarum-restricted-visibility)
+[![License](https://img.shields.io/packagist/l/peopleinside/flarum-restricted-visibility)](https://github.com/PeopleInside/flarum-restricted-visibility/blob/main/LICENSE)
+[![PHP Version](https://img.shields.io/packagist/php-v/peopleinside/flarum-restricted-visibility)](https://packagist.org/packages/peopleinside/flarum-restricted-visibility)
 
-> Stato: scritta per Flarum 2.0.2 sulla base della documentazione ufficiale 2.x. Non è stata eseguita contro
-> un'installazione reale. **Prima di metterla in produzione esegui tutta la checklist in `TESTING.md` su una copia
-> di staging.** Nessun software può essere garantito "privo di vulnerabilità": qui sotto trovi cosa è protetto,
-> come, e quali limiti restano.
+Restrict the visibility of individual posts or entire discussions to selected users or groups in Flarum.
 
-## Installazione
+Users who are not authorized to view restricted content cannot access it through discussions, search results, or profiles. They also do not receive notifications or emails containing restricted content, even if they are subscribed to the discussion.
 
-Requisiti: Flarum 2.0 o successivo e PHP 8.3 o successivo.
+## Features
+
+- Restrict individual posts or entire discussions.
+- Select specific users and/or user groups who can access restricted content.
+- Prevent unauthorized users from discovering restricted content through supported Flarum visibility mechanisms.
+- Filter notifications and emails to prevent restricted content from being disclosed.
+- Provide moderators with a permission-based visibility bypass.
+- Manage and remove extension data through the administration interface or command line.
+- English and Italian language support.
+
+## Requirements
+
+- Flarum 2.x
+- PHP 8.2 or later
+
+This extension is not compatible with Flarum 1.x.
+
+## Installation
+
+Run the following command in your Flarum installation directory:
 
 ```bash
-composer require peopleinside/flarum-restricted-visibility
+composer require peopleinside/flarum-restricted-visibility:*
+```
+
+Then run the migrations and clear the cache:
+
+```bash
 php flarum migrate
 php flarum cache:clear
 ```
 
-Poi abilita l'estensione da **Admin → Estensioni → Restricted Visibility** e assegna i permessi (vedi sotto).
+Finally, enable the extension from the Flarum administration panel and configure its permissions.
 
-### Aggiornamento
+## Permissions
+
+Go to **Administration → Permissions** to configure the following permissions.
+
+| Permission | Recommended users | Description |
+| --- | --- | --- |
+| Restrict the visibility of their own posts and discussions | Trusted users | Allows users to restrict the visibility of their own content. |
+| View all restricted content | Moderators | Allows users to bypass visibility restrictions and manage restrictions created by others. |
+
+Administrators always have both permissions.
+
+No permissions are granted automatically to other groups.
+
+## Usage
+
+### Restricting new content
+
+When creating a post or discussion:
+
+1. Open the composer.
+2. Click the crossed-out eye icon.
+3. Select the users and/or groups allowed to view the content.
+4. Publish the post or discussion.
+
+### Changing visibility
+
+To change the visibility of existing content, use the post or discussion menu and select **Edit visibility**, or use the visibility controls in the editing composer.
+
+Changing the visibility of an existing post also requires permission to edit that post, including any applicable Flarum editing time restrictions.
+
+### Visual indicators
+
+A purple crossed-out eye icon indicates that a discussion contains restricted posts visible to the current user.
+
+Users who are not authorized to see restricted content do not receive information about its existence. The restricted-content count is always zero for unauthorized users.
+
+## Visibility rules
+
+- Visibility can only be restricted, not expanded.
+- The effective visibility of a post is the intersection of the discussion's visibility and the post's visibility.
+- The author and users with the **View all restricted content** permission can always view restricted content.
+- The first post of a discussion cannot be restricted independently. Restrict the entire discussion instead.
+- Unauthorized users cannot see restricted posts or discover their existence through the extension's supported visibility mechanisms.
+- Only the author and users with the visibility bypass permission can see the list of selected recipients.
+- Authorized recipients see a restricted-content indicator.
+- Users without the appropriate permissions cannot change restrictions created by others.
+
+## Security considerations
+
+The extension implements several protections to help prevent unauthorized access to restricted content.
+
+### Content visibility
+
+Visibility scopes are applied to Flarum discussions and posts through `Extend\ModelVisibility`.
+
+These scopes cover supported API responses, search results, counts, and relationships.
+
+Posts also explicitly check the visibility of their parent discussion as an additional protection.
+
+### Database queries and input validation
+
+- Database queries use parameterized queries through the query builder.
+- User and group identifiers are converted to integers.
+- User and group selections are validated before being saved.
+- Selection limits are enforced.
+- Unauthorized write operations are rejected.
+
+### Notifications
+
+A centralized notification filter checks whether the recipient is allowed to access the notification subject and the related content.
+
+The filter runs before notification delivery to the available notification drivers, including email.
+
+This also takes into account notification blueprints that may contain multiple related posts or discussions.
+
+### Data removal
+
+Extension data removal is restricted to administrators.
+
+The operation uses Flarum's CSRF protection, server-side confirmation validation, and a database transaction.
+
+### Database relationships
+
+Foreign keys use `ON DELETE CASCADE` so related restriction records are removed when their associated posts, discussions, users, or groups are deleted.
+
+## Known limitations
+
+Please consider these limitations when deploying the extension.
+
+1. **Discussion metadata:** Flarum discussion metadata, such as post counts, last-post dates, and last-post authors, may reflect restricted posts. Unauthorized users might notice that a discussion has been updated or see the name of its latest author without being able to read the restricted content. For particularly sensitive discussions, restrict the entire discussion rather than individual posts.
+2. **Third-party extensions and external services:** Extensions that retrieve posts through direct database queries or external indexes may not respect Flarum's visibility scopes. Examples include search integrations, RSS feeds, exports, bots, and external indexing services. Verify compatibility with each integration separately.
+3. **Real-time events:** If you use Pusher or `flarum/realtime`, verify that real-time event payloads do not expose restricted post content. Content should be retrieved through the filtered API, but this behavior should be checked in your own environment.
+4. **Previously delivered notifications:** Restricting content after publication cannot retract notifications that have already been sent or content that users have already read.
+5. **Managing other users' content:** Users with the regular restriction permission can manage their own posts. Moderators with the visibility bypass permission can manage restrictions created by other users.
+6. **Large forums:** Removing or processing a large amount of extension data through the administration interface may result in request timeouts. The command-line method is recommended for large forums.
+
+## Testing and verification
+
+Before deploying the extension or updating it, verify that its behavior is correct in your Flarum environment.
+
+Use the checklist in [TESTING.md](TESTING.md) to verify:
+
+- Access to restricted discussions and posts.
+- Visibility in search results and user profiles.
+- Permissions for authors, recipients, moderators, and administrators.
+- Notification and email filtering.
+- Editing and changing visibility.
+- Real-time behavior, if enabled.
+- Data removal and cleanup procedures.
+
+Test with separate accounts representing users with different permissions. Do not rely exclusively on an administrator account, because administrators have unrestricted access.
+
+Also verify compatibility with third-party extensions and integrations that retrieve or display discussion content.
+
+## Complete removal
+
+Disabling or uninstalling the extension without first processing its restricted content can make that content visible to everyone.
+
+If you want to remove the extension completely, follow these steps in order.
+
+### 1. Process restricted content
+
+Go to:
+
+**Administration → Extensions → Restricted Visibility → Danger Zone → Delete all extension data**
+
+Choose what should happen to restricted content and enter the confirmation word:
+
+`ELIMINA`
+
+The available modes are:
+
+| Mode | Result |
+| --- | --- |
+| `hide` (default) | Marks restricted content as hidden using `hidden_at`. Hidden content remains available to moderators. |
+| `delete` | Permanently deletes restricted content. |
+| `public` | Removes visibility restrictions and makes the content public. |
+
+This operation also removes the extension's permissions and settings.
+
+### 2. Disable the extension
+
+After processing the restricted content, disable Restricted Visibility from the Flarum administration panel.
+
+### 3. Remove extension data and migrations
+
+Use the **Delete data** option on the extension administration page.
+
+Alternatively, run:
 
 ```bash
-composer update peopleinside/flarum-restricted-visibility
-php flarum migrate
-php flarum cache:clear
+php flarum migrate:reset --extension peopleinside-restricted-visibility
 ```
 
-### Sviluppo
+This removes the extension's database tables and migration records.
 
-I bundle JS compilati sono già in `js/dist` (vanno inclusi nel repository). Se modifichi i sorgenti:
-`cd js && npm install && npm run build`.
+If you skip this step, empty database tables may remain.
 
-## Permessi (Admin → Permessi)
+### 4. Uninstall the package
 
-| Permesso | Chi dovrebbe averlo | Effetto |
-|---|---|---|
-| Restringere la visibilità dei propri post e discussioni | utenti fidati | mostra il pulsante nel composer |
-| Vedere tutti i contenuti riservati | moderatori | bypass delle restrizioni e gestione di quelle altrui |
+Run:
 
-Gli amministratori hanno sempre entrambi. **Nessun permesso viene concesso per impostazione predefinita.**
+```bash
+composer remove peopleinside/flarum-restricted-visibility
+```
 
-## Uso
+### Command-line data removal
 
-- **Nuovo post / nuova discussione**: nel composer, pulsante con l'occhio barrato → scegli gruppi e/o utenti → pubblica.
-- **Modifica**: menu del post (o della discussione) → "Modifica visibilità…", oppure dal composer di modifica.
-- **Badge**: un'icona *occhio barrato* viola (diversa dal lucchetto della discussione bloccata) compare sulla discussione se
-  contiene post riservati **che chi guarda può vedere**. Per gli altri il conteggio è sempre 0, quindi nulla trapela.
-
-### Regole
-
-- La visibilità si può solo **restringere**: la visibilità effettiva è l'intersezione tra discussione e post.
-- Autore e utenti con "Vedere tutti i contenuti riservati" vedono sempre.
-- Il **primo post** non si può restringere da solo: restringi la discussione.
-- Chi non può vedere un post riservato non sa che esiste (invisibilità totale).
-- Solo l'autore e chi ha il bypass vedono l'elenco dei destinatari; i destinatari vedono "Riservato".
-- Modificare la visibilità di un post esistente richiede anche di poter modificare quel post (limiti di tempo di modifica inclusi).
-
-## Disinstallazione completa (senza residui)
-
-I dati **restano** se disattivi o rimuovi l'estensione. Per una pulizia completa, in quest'ordine:
-
-1. **Admin → Estensioni → Restricted Visibility → "Zona pericolosa" → "Elimina tutti i dati dell'estensione…"**
-   Scegli cosa fare dei contenuti riservati (**Nascondi** è preselezionato), digita `ELIMINA`.
-   Elimina le restrizioni, i permessi e le impostazioni, in una sola transazione.
-2. **Disattiva** l'estensione.
-3. **"Elimina dati"** nella stessa pagina (o `php flarum migrate:reset --extension peopleinside-restricted-visibility`): rimuove le tabelle e i record di migrazione.
-4. `composer remove peopleinside/flarum-restricted-visibility`.
-
-> ⚠️ Se disattivi o rimuovi l'estensione **senza** il passo 1, i contenuti riservati diventano visibili a tutti.
-> Se salti solo il passo 3, restano tabelle vuote e inoffensive.
-
-| Modalità | Effetto sui contenuti riservati |
-|---|---|
-| `hide` (predefinita) | li nasconde (`hidden_at`), visibili solo ai moderatori; nulla va perso |
-| `delete` | li elimina definitivamente |
-| `public` | rimuove solo le restrizioni: diventano visibili a tutti |
-
-### Comando da terminale
+For larger forums, you can use the command-line purge command:
 
 ```bash
 php flarum peopleinside-restricted-visibility:purge [--mode=hide|delete|public] [--actor=ID] [--dry-run] [--yes]
 ```
 
-| Opzione | Significato |
-|---|---|
-| `--mode`, `-m` | cosa fare dei contenuti riservati (predefinito `hide`) |
-| `--actor` | ID utente registrato come autore del nascondimento (predefinito: primo amministratore) |
-| `--dry-run` | mostra solo il riepilogo |
-| `--yes`, `-y` | salta la conferma (per script); senza, va digitato `ELIMINA` |
+Available options:
 
-Consigliato su forum grandi: evita i timeout delle richieste web. Dopo il comando, prosegui dal passo 2.
+| Option | Description |
+| --- | --- |
+| `--mode` or `-m` | Selects what happens to restricted content. Defaults to `hide`. |
+| `--actor` | User ID recorded as the actor performing the hide operation. Defaults to the first administrator. |
+| `--dry-run` | Displays a summary without applying changes. |
+| `--yes` or `-y` | Skips the interactive confirmation. Without this option, enter `ELIMINA` when prompted. |
 
-## Come funziona la sicurezza
+For large forums, the command-line method is recommended to avoid web request timeouts.
 
-- **Scope di visibilità** (`Extend\ModelVisibility`) su Discussion e Post: vale per API, ricerca, conteggi e relazioni.
-  Il post ripete esplicitamente anche il controllo della discussione (difesa in profondità).
-- **Query parametrizzate** (query builder), ID sempre convertiti a intero, nessun input concatenato in SQL.
-- **Scrittura protetta**: i campi sono scrivibili solo con permesso + (autore o bypass); gruppi e utenti sono validati
-  (esistenti, visibili all'attore, con limiti di 50 e 100); in caso di errore la richiesta fallisce, non si scarta in silenzio.
-- **Notifiche**: filtro centralizzato (`Notification::beforeSending`) prima di qualunque driver, quindi vale per campanella ed
-  email e per tutte le estensioni che usano il sistema di notifiche di Flarum (iscrizioni "Segui", menzioni, FoF Subscribed, ...).
-  Il filtro legge **tutti** i post e le discussioni contenuti nel blueprint, anche in proprietà `protected`/`private`, perché ad
-  esempio la notifica di una nuova risposta ha come soggetto la discussione ma contiene il post di cui invia il testo.
-- **Scrittura durante il salvataggio**: le restrizioni vengono scritte nel database dagli eventi Eloquent `created`/`saved`,
-  cioè dentro `save()`, prima che Flarum invii gli eventi di dominio. Con la coda `sync` le notifiche partono subito e rileggono
-  il post dal database: se le righe non fossero già presenti, l'email con il testo arriverebbe a chi non può vedere il post.
-- **Rimozione dati**: solo amministratori, protetta da CSRF di Flarum, conferma testuale verificata anche lato server
-  (`hash_equals`), transazione unica.
-- **Foreign key con `ON DELETE CASCADE`**: cancellando un post, una discussione, un utente o un gruppo, le righe collegate spariscono.
+After completing the data removal, continue with steps 2–4 above.
 
-## Limiti noti (da conoscere prima di andare in produzione)
+> **Important:** Never disable or uninstall the extension before processing restricted content. Otherwise, content that was previously restricted may become publicly visible.
 
-1. **Dati denormalizzati della discussione**: contatore messaggi, ultimo post, data e autore dell'ultimo intervento sono calcolati
-   anche sui post riservati. Un utente non autorizzato può quindi notare che la discussione "risale" o vedere il nome
-   dell'ultimo autore, senza vedere il contenuto. Non è risolto: per casi sensibili usa la restrizione sull'intera discussione.
-2. **Estensioni di terze parti** che leggono i post con query dirette o indici esterni (Elasticsearch, feed RSS, esportazioni, bot)
-   possono aggirare gli scope. Vanno verificate caso per caso.
-3. **Realtime** (Pusher / flarum/realtime): verifica che l'evento non contenga il testo; il contenuto è ricaricato via API
-   (quindi filtrato), ma controllalo (vedi `TESTING.md`).
-4. **Restrizione dopo la pubblicazione**: notifiche già inviate e contenuti già letti non si possono ritirare.
-5. **Chi ha il permesso può restringere i post altrui?** No, solo i propri; i moderatori con il bypass possono agire su tutti,
-   anche togliendo una restrizione impostata da un altro.
-6. La rimozione in modalità `hide`/`delete` dal pannello web su forum molto grandi può andare in timeout: usa il comando CLI.
+## Development
 
-## Sicurezza
+The JavaScript distribution bundles are included in `js/dist`.
 
-Per segnalare una vulnerabilità segui la policy di sicurezza del repository
-(scheda **Security** su GitHub, file `SECURITY.md`) e non aprire una issue pubblica.
+If you modify the JavaScript source files, rebuild the bundles with:
+
+```bash
+cd js
+npm install
+npm run build
+```
+
+## Disclaimer
+
+This extension is provided "as is", without warranties of any kind, express or implied.
+
+The author makes no guarantees that the extension will be free from bugs, vulnerabilities, service interruptions, or compatibility issues with every Flarum installation or third-party extension.
+
+You are responsible for:
+
+- Testing the extension in your own environment before using it in production.
+- Maintaining current backups of your forum and database.
+- Reviewing permissions and access settings.
+- Verifying compatibility with your installed extensions and integrations.
+- Assessing whether the extension meets your security and privacy requirements.
+
+The author is not liable for direct or indirect damages, data loss, unauthorized access, service interruptions, or other consequences resulting from the installation, use, or inability to use this extension, to the extent permitted by applicable law.
+
+Nothing in this disclaimer excludes or limits liability where such exclusion or limitation is not permitted by applicable law.
+
+## Support
+
+For support, questions, or feedback, contact:
+
+**[tickets@peopleinside-it.p.tawk.email](mailto:tickets@peopleinside-it.p.tawk.email)**
+
+For bug reports and feature requests, you can also use the repository's [GitHub Issues](https://github.com/PeopleInside/flarum-restricted-visibility/issues).
+
+## Links
+
+- [GitHub repository](https://github.com/PeopleInside/flarum-restricted-visibility)
+- [Packagist package](https://packagist.org/packages/peopleinside/flarum-restricted-visibility)
+
+## License
+
+This extension is released under the [MIT License](LICENSE).
+
+## Author
+
+Developed and maintained by **PeopleInside**.
