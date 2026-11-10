@@ -27,6 +27,12 @@ peopleinside-restricted-visibility:
     permissions:
       restrict: "Restringere la visibilità dei propri post e discussioni"
       view_all: "Vedere tutti i contenuti riservati"
+    button_position:
+      label: "Posizione del pulsante nel composer"
+      help: "Dove compare il pulsante \"Chi può vederlo?\" rispetto ai pulsanti Pubblica e Anteprima."
+      before_submit: "Prima del pulsante Pubblica"
+      after_submit: "Dopo il pulsante Pubblica (predefinito)"
+      after_preview: "Dopo il pulsante Anteprima"
     danger:
       title: "Zona pericolosa"
       help: "Elimina tutte le restrizioni di visibilità, i permessi e le impostazioni di questa estensione. Fallo PRIMA di disattivarla o rimuoverla."

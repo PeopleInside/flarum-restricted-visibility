@@ -27,6 +27,12 @@ peopleinside-restricted-visibility:
     permissions:
       restrict: "Restrict visibility of own posts and discussions"
       view_all: "See all restricted content"
+    button_position:
+      label: "Composer button position"
+      help: "Where the \"Who can see this?\" button appears next to the Post and Preview buttons."
+      before_submit: "Before the Post button"
+      after_submit: "After the Post button (default)"
+      after_preview: "After the Preview button"
     danger:
       title: "Danger zone"
       help: "Deletes all visibility restrictions, permissions and settings of this extension. Do this BEFORE disabling or removing it."

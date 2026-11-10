@@ -4,6 +4,7 @@ use PeopleInside\RestrictedVisibility\Access;
 use PeopleInside\RestrictedVisibility\Api;
 use PeopleInside\RestrictedVisibility\Authz;
 use PeopleInside\RestrictedVisibility\Console;
+use PeopleInside\RestrictedVisibility\Constants;
 use PeopleInside\RestrictedVisibility\Fields;
 use PeopleInside\RestrictedVisibility\Notification\RecipientFilter;
 use PeopleInside\RestrictedVisibility\Repository;
@@ -24,6 +25,15 @@ return [
         ->js(__DIR__.'/js/dist/admin.js'),
 
     new Extend\Locales(__DIR__.'/locale'),
+
+    // Posizione del pulsante nel composer (scelta dall'amministratore).
+    (new Extend\Settings())
+        ->default(Constants::SETTING_BUTTON_POSITION, Constants::BUTTON_POSITION_DEFAULT)
+        ->serializeToForum(
+            'peopleinsideComposerButtonPosition',
+            Constants::SETTING_BUTTON_POSITION,
+            fn ($value) => in_array($value, Constants::BUTTON_POSITIONS, true) ? $value : Constants::BUTTON_POSITION_DEFAULT
+        ),
 
     // Scope di visibilità: valgono ovunque (API, ricerca, conteggi, ...).
     (new Extend\ModelVisibility(Discussion::class))

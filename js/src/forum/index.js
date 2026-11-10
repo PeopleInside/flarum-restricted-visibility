@@ -130,6 +130,21 @@ app.initializers.add(ID, () => {
     const f = composer.fields;
     const active = (f.restrictedGroupIds || []).length + (f.restrictedUserIds || []).length > 0;
 
+    // Posizione scelta dall'amministratore. Nel core "submit" e "preview" hanno entrambi priorità 0,
+    // quindi si fissano esplicitamente (la priorità più alta viene prima):
+    //   before_submit : [Nostro] [Pubblica] [Anteprima]
+    //   after_submit  : [Pubblica] [Nostro] [Anteprima]   (predefinito)
+    //   after_preview : [Pubblica] [Anteprima] [Nostro]
+    const position = app.forum.attribute('peopleinsideComposerButtonPosition');
+    const priorities = {
+      before_submit: { submit: 50, preview: 0, ours: 100 },
+      after_submit: { submit: 100, preview: 0, ours: 50 },
+      after_preview: { submit: 100, preview: 50, ours: 0 },
+    };
+    const prio = priorities[position] || priorities.after_submit;
+    if (items.has('submit')) items.setPriority('submit', prio.submit);
+    if (items.has('preview')) items.setPriority('preview', prio.preview);
+
     items.add(
       'restrict-visibility',
       <Button
@@ -150,7 +165,7 @@ app.initializers.add(ID, () => {
           })
         }
       />,
-      5
+      prio.ours
     );
   });
 

@@ -25,6 +25,22 @@ export default [
       }),
       'moderate'
     )
+    // Posizione del pulsante nel composer.
+    .setting(
+      () => ({
+        setting: ID + '.composer_button_position',
+        type: 'select',
+        label: app.translator.trans(ID + '.admin.button_position.label', {}, true),
+        help: app.translator.trans(ID + '.admin.button_position.help', {}, true),
+        options: {
+          before_submit: app.translator.trans(ID + '.admin.button_position.before_submit', {}, true),
+          after_submit: app.translator.trans(ID + '.admin.button_position.after_submit', {}, true),
+          after_preview: app.translator.trans(ID + '.admin.button_position.after_preview', {}, true),
+        },
+        default: 'after_submit',
+      }),
+      10
+    )
     // Zona pericolosa: il callback è eseguito nel contesto di ExtensionPage.
     .setting(
       () =>
