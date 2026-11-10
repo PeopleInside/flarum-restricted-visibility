@@ -26,6 +26,36 @@ Users who are not authorized to view restricted content cannot access it through
 
 This extension is not compatible with Flarum 1.x.
 
+## Screenshots
+
+### Admin Interface
+
+<img width="1636" height="667" alt="Screenshot 2026-11-10 233810" src="https://github.com/user-attachments/assets/0dc2090c-a55f-4acf-8154-8e12abfe53c0" />
+
+### Composing message interface
+Flarum discussion composer interface. 
+Note the crossed-out eye icon button positioned immediately before the 'Post Discussion' button. This control allows the user to toggle and activate visibility restrictions for the topic before publishing.
+
+<img width="1110" height="341" alt="Screenshot 2026-11-10 233350" src="https://github.com/user-attachments/assets/a01f0a2e-0efd-44e0-9bc0-87f3343580f8" />
+
+### When the eye icon is clicked on the composing window
+you can see a Pop-up with options
+
+<img width="382" height="286" alt="Screenshot 2026-11-10 233401" src="https://github.com/user-attachments/assets/2ed2b3c0-b1d9-49bb-9f2b-ad119c0022bc" />
+ 
+...
+ 
+<img width="395" height="654" alt="Screenshot 2026-11-10 233432" src="https://github.com/user-attachments/assets/73438810-93d1-47e0-8748-886c422f1a57" />
+
+### Restricted topic and messages appearance
+
+<img width="823" height="740" alt="Screenshot 2026-11-10 233556" src="https://github.com/user-attachments/assets/77a737e5-c342-457d-adfd-ccd2c9edb652" />
+
+### Visibility option in the three dots menu
+
+<img width="817" height="428" alt="Screenshot 2026-11-10 233621" src="https://github.com/user-attachments/assets/d55e8c3e-e6c4-42c5-94bf-e8df3616a483" />
+
+
 ## Installation
 
 Run the following command in your Flarum installation directory:
