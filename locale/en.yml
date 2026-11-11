@@ -20,7 +20,7 @@ peopleinside-restricted-visibility:
       groups: "Groups"
       users: "Users"
       search_placeholder: "Search a user…"
-      help: "You and moderators will always see it. People who cannot see it receive no alert and no email. This can only narrow visibility, never widen it."
+      help: "You and moderators will always see it. People who cannot see it receive no alert and no email. You can only choose among people who can already see the discussion; you cannot give access to anyone who could not see it."
       empty_error: "Choose at least one group or user, or select \"Everyone\"."
       orphaned: "Everyone this was restricted to has been removed, so now only the author, moderators and administrators can see it. Choose who can see it, or select \"Everyone\" to make it public."
       no_permission_public: "You are not allowed to make this content public again."

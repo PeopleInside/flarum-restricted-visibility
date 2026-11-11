@@ -20,7 +20,7 @@ peopleinside-restricted-visibility:
       groups: "Gruppi"
       users: "Utenti"
       search_placeholder: "Cerca un utente…"
-      help: "Tu e i moderatori lo vedrete sempre. Chi non può vederlo non riceve né notifica né email. Si può solo restringere la visibilità, mai allargarla."
+      help: "Tu e i moderatori lo vedrete sempre. Chi non può vederlo non riceve né notifica né email. Puoi scegliere solo tra chi già vede la discussione: non puoi dare accesso a chi non potrebbe vederla."
       empty_error: "Scegli almeno un gruppo o un utente, oppure seleziona \"Tutti\"."
       orphaned: "I gruppi o gli utenti a cui era riservato sono stati rimossi: ora lo vedono solo l'autore, i moderatori e gli amministratori. Scegli chi può vederlo, oppure seleziona \"Tutti\" per renderlo pubblico."
       no_permission_public: "Non hai il permesso di rendere di nuovo pubblico questo contenuto."

@@ -156,7 +156,9 @@ app.initializers.add(ID, () => {
             users: f.restrictedUsers || [],
             restricted: active || !!composer.body?.attrs?.post?.isRestricted?.(),
             canMakePrivate: mayPrivate,
-            canMakePublic: mayPublic,
+            // Contenuto nuovo: tornare a "tutti" non è "rendere pubblico" qualcosa di già riservato,
+            // quindi non serve il permesso. In modifica sì.
+            canMakePublic: editing ? mayPublic : true,
             onsave: (groupIds, users) => {
               f.restrictedGroupIds = groupIds;
               f.restrictedUsers = users;
@@ -196,6 +198,19 @@ app.initializers.add(ID, () => {
   });
 
   // ---- menu del post / della discussione (utility differite: import asincrono)
+  /*
+   * I post sono ridisegnati solo quando cambia il loro "freshness" (subtree check del core).
+   * Salvando la discussione, le etichette dei post ("Discussione riservata a...", icona dei messaggi
+   * limitati) non cambiavano finché non si ricaricava la pagina: si aggiorna il freshness dei post caricati.
+   */
+  const refreshPosts = (model) => {
+    if (!(model instanceof Discussion)) return;
+    const did = String(model.id());
+    app.store.all('posts').forEach((p) => {
+      if (String(p.discussion?.()?.id?.()) === did) p.freshness = new Date();
+    });
+  };
+
   const openFor = (model) =>
     app.modal.show(VisibilityModal, {
       groupIds: model.restrictedGroupIds?.() || [],
@@ -206,7 +221,10 @@ app.initializers.add(ID, () => {
       onsave: (groupIds, users) =>
         model
           .save({ restrictedGroupIds: groupIds, restrictedUserIds: users.map((u) => u.id) })
-          .then(() => m.redraw())
+          .then(() => {
+            refreshPosts(model);
+            m.redraw();
+          })
           .catch(() => {}),
     });
 
