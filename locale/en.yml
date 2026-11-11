@@ -20,12 +20,20 @@ peopleinside-restricted-visibility:
       groups: "Groups"
       users: "Users"
       search_placeholder: "Search a user…"
-      help: "You and moderators will always see it. People who cannot see it receive no alert and no email. This can only narrow visibility, never widen it."
+      help: "You and moderators will always see it. People who cannot see it receive no alert and no email. You can only choose among people who can already see the discussion; you cannot give access to anyone who could not see it."
       empty_error: "Choose at least one group or user, or select \"Everyone\"."
+      orphaned: "Everyone this was restricted to has been removed, so now only the author, moderators and administrators can see it. Choose who can see it, or select \"Everyone\" to make it public."
+      no_permission_public: "You are not allowed to make this content public again."
+      no_permission_private: "You are not allowed to restrict or change who can see content."
+      warn_no_public: "Warning: you do not have permission to make restricted content public again. Once it is posted or saved like this you cannot undo it: someone with that permission will have to do it."
+      warn_no_private: "Warning: you do not have permission to make existing content private. Once it is posted or saved as public you cannot restrict it again: someone with that permission will have to do it."
+      warn_no_edit_after: "Warning: you do not have permission to change the visibility of existing content. After posting you cannot change the chosen groups or users: you can only make it public (if you have that permission) and then you cannot restrict it again."
       save: "Apply"
   admin:
     permissions:
-      restrict: "Restrict visibility of own posts and discussions"
+      create_private: "Create new private posts and discussions"
+      restrict: "Make existing posts and discussions private (restrict visibility)"
+      make_public: "Make own posts and discussions public (remove restrictions)"
       view_all: "See all restricted content"
     button_position:
       label: "Composer button position"

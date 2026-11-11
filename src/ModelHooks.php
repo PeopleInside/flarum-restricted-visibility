@@ -35,6 +35,13 @@ final class ModelHooks
             }
         };
 
+        // Prima del salvataggio: se il passaggio pubblico/riservato non è permesso, si blocca tutto.
+        $class::saving(function ($saving) {
+            if ($saving instanceof AbstractModel) {
+                Repository::assertTransitionAllowed($saving);
+            }
+        });
+
         $class::created($flush); // nuovi contenuti: prima di ogni evento di dominio
         $class::saved($flush);   // modifiche di contenuti esistenti
     }

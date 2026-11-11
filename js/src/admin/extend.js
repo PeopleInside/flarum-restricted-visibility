@@ -12,8 +12,24 @@ export default [
     .permission(
       () => ({
         icon: 'fas fa-eye-slash',
+        label: app.translator.trans(ID + '.admin.permissions.create_private', {}, true),
+        permission: ID + '.createPrivate',
+      }),
+      'start'
+    )
+    .permission(
+      () => ({
+        icon: 'fas fa-eye-slash',
         label: app.translator.trans(ID + '.admin.permissions.restrict', {}, true),
         permission: ID + '.restrict',
+      }),
+      'reply'
+    )
+    .permission(
+      () => ({
+        icon: 'fas fa-eye',
+        label: app.translator.trans(ID + '.admin.permissions.make_public', {}, true),
+        permission: ID + '.makePublic',
       }),
       'reply'
     )

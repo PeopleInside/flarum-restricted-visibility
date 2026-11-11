@@ -13,6 +13,21 @@ final class Pending
 {
     private static ?\WeakMap $map = null;
 
+    /** @var \WeakMap<object, \Flarum\User\User>|null */
+    private static ?\WeakMap $actors = null;
+
+    /** Chi ha richiesto la modifica: serve per controllare i permessi al momento del salvataggio. */
+    public static function setActor(object $model, \Flarum\User\User $actor): void
+    {
+        self::$actors ??= new \WeakMap();
+        self::$actors[$model] = $actor;
+    }
+
+    public static function actor(object $model): ?\Flarum\User\User
+    {
+        return self::$actors[$model] ?? null;
+    }
+
     /** @param int[] $ids */
     public static function put(object $model, string $part, array $ids): void
     {

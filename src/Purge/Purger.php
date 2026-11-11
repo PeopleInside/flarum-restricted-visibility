@@ -9,19 +9,32 @@ use Flarum\Post\Post;
 use Flarum\User\User;
 
 /**
- * Elimina i dati dell'estensione. Tutto avviene in UNA transazione: se qualcosa fallisce
- * non cambia nulla. Le tabelle restano (vuote) fino a "Elimina dati" nativo di Flarum.
+ * Elimina i dati dell'estensione.
+ *
+ * Non c'è una transazione unica su tutto: su forum grandi bloccherebbe righe di discussioni e
+ * post per tutta la durata. Si procede invece in questo ordine, ognuno con transazioni brevi:
+ *
+ *  1. contenuti riservati (hide/delete): UNA transazione per ogni blocco di 100 modelli;
+ *  2. collegamenti di restrizione, permessi e impostazioni: una transazione finale, piccola.
+ *
+ * L'ordine è la garanzia di sicurezza: i collegamenti vengono rimossi solo dopo aver trattato i
+ * contenuti. Se l'operazione si interrompe a metà, i contenuti non ancora trattati sono ancora
+ * riservati (non diventano pubblici) e basta rilanciare il comando: riprende da dove si era fermato.
+ *
+ * Le tabelle restano (vuote) fino a "Elimina dati" nativo di Flarum.
  */
 class Purger
 {
+    private const CHUNK = 100;
+
     /** @return array<string, int> */
     public function preview(): array
     {
         $db = Db::conn();
 
         return [
-            'discussions' => count($this->discussionIds()),
-            'posts' => count($this->postIds()),
+            'discussions' => $this->restrictedDiscussions()->count(),
+            'posts' => $this->restrictedPosts()->count(),
             'groupLinks' => $db->table('restricted_discussion_groups')->count() + $db->table('restricted_post_groups')->count(),
             'userLinks' => $db->table('restricted_discussion_users')->count() + $db->table('restricted_post_users')->count(),
         ];
@@ -39,24 +52,24 @@ class Purger
 
         $report = ['mode' => $mode] + $this->preview() + ['affectedDiscussions' => 0, 'affectedPosts' => 0];
 
-        Db::conn()->transaction(function () use ($mode, $actor, &$report) {
-            $discussionIds = $this->discussionIds();
-            $postIds = $this->postIds();
+        // 1) Contenuti, a blocchi: ogni blocco è una transazione a sé.
+        if ($mode === 'hide') {
+            $this->hide($actor, $report);
+        } elseif ($mode === 'delete') {
+            $this->delete($report);
+        }
 
-            if ($mode === 'hide') {
-                $this->hide($discussionIds, $postIds, $actor, $report);
-            } elseif ($mode === 'delete') {
-                $this->delete($discussionIds, $postIds, $report);
-            }
-
+        // 2) Pulizia finale: solo righe di collegamento, permessi e impostazioni.
+        Db::conn()->transaction(function () {
             $db = Db::conn();
             foreach (Db::TABLES as $t) {
                 $db->table($t['groups'])->delete();
                 $db->table($t['users'])->delete();
+                $db->table($t['marker'])->delete();
             }
 
             $db->table('group_permission')
-                ->whereIn('permission', [Constants::PERM_RESTRICT, Constants::PERM_VIEW_ALL])
+                ->whereIn('permission', [Constants::PERM_CREATE_PRIVATE, Constants::PERM_MAKE_PRIVATE, Constants::PERM_MAKE_PUBLIC, Constants::PERM_VIEW_ALL])
                 ->delete();
             $db->table('settings')->where('key', 'like', Constants::ID.'.%')->delete();
         });
@@ -64,44 +77,52 @@ class Purger
         return $report;
     }
 
-    /** @return int[] */
-    private function discussionIds(): array
+    /**
+     * Discussioni con almeno una restrizione. Sottoquery sulle tabelle di collegamento: niente
+     * elenchi di ID in memoria né migliaia di parametri in una sola query.
+     */
+    private function restrictedDiscussions()
     {
-        $db = Db::conn();
-
-        return array_values(array_unique(array_map('intval', array_merge(
-            $db->table('restricted_discussion_groups')->pluck('discussion_id')->all(),
-            $db->table('restricted_discussion_users')->pluck('discussion_id')->all()
-        ))));
+        return Discussion::query()->where(function ($w) {
+            $w->whereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_discussions')->whereColumn('restricted_discussions.discussion_id', 'discussions.id');
+            })->orWhereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_discussion_groups')->whereColumn('restricted_discussion_groups.discussion_id', 'discussions.id');
+            })->orWhereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_discussion_users')->whereColumn('restricted_discussion_users.discussion_id', 'discussions.id');
+            });
+        });
     }
 
-    /** @return int[] */
-    private function postIds(): array
+    private function restrictedPosts()
     {
-        $db = Db::conn();
-
-        return array_values(array_unique(array_map('intval', array_merge(
-            $db->table('restricted_post_groups')->pluck('post_id')->all(),
-            $db->table('restricted_post_users')->pluck('post_id')->all()
-        ))));
+        return Post::query()->where(function ($w) {
+            $w->whereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_posts')->whereColumn('restricted_posts.post_id', 'posts.id');
+            })->orWhereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_post_groups')->whereColumn('restricted_post_groups.post_id', 'posts.id');
+            })->orWhereExists(function ($s) {
+                $s->selectRaw('1')->from('restricted_post_users')->whereColumn('restricted_post_users.post_id', 'posts.id');
+            });
+        });
     }
 
-    private function hide(array $discussionIds, array $postIds, ?User $actor, array &$report): void
+    private function hide(?User $actor, array &$report): void
     {
-        if ($discussionIds !== []) {
-            Discussion::query()->whereIn('id', $discussionIds)->whereNull('hidden_at')
-                ->chunkById(100, function ($chunk) use ($actor, &$report) {
+        $this->restrictedDiscussions()->whereNull('hidden_at')
+            ->chunkById(self::CHUNK, function ($chunk) use ($actor, &$report) {
+                Db::conn()->transaction(function () use ($chunk, $actor, &$report) {
                     foreach ($chunk as $discussion) {
                         $discussion->hide($actor);
                         $discussion->save();
                         $report['affectedDiscussions']++;
                     }
                 });
-        }
+            });
 
-        if ($postIds !== []) {
-            Post::query()->whereIn('id', $postIds)->whereNull('hidden_at')
-                ->chunkById(100, function ($chunk) use ($actor, &$report) {
+        $this->restrictedPosts()->whereNull('hidden_at')
+            ->chunkById(self::CHUNK, function ($chunk) use ($actor, &$report) {
+                Db::conn()->transaction(function () use ($chunk, $actor, &$report) {
                     foreach ($chunk as $post) {
                         $discussion = $post->discussion;
                         // Il primo post non si nasconde da solo: si nasconde la discussione.
@@ -118,25 +139,25 @@ class Purger
                         $report['affectedPosts']++;
                     }
                 });
-        }
+            });
     }
 
-    private function delete(array $discussionIds, array $postIds, array &$report): void
+    private function delete(array &$report): void
     {
         // Via i modelli (non SQL grezzo) così Flarum aggiorna contatori e ultimo post.
-        if ($discussionIds !== []) {
-            Discussion::query()->whereIn('id', $discussionIds)
-                ->chunkById(100, function ($chunk) use (&$report) {
+        $this->restrictedDiscussions()
+            ->chunkById(self::CHUNK, function ($chunk) use (&$report) {
+                Db::conn()->transaction(function () use ($chunk, &$report) {
                     foreach ($chunk as $discussion) {
                         $discussion->delete();
                         $report['affectedDiscussions']++;
                     }
                 });
-        }
+            });
 
-        if ($postIds !== []) {
-            Post::query()->whereIn('id', $postIds)
-                ->chunkById(100, function ($chunk) use (&$report) {
+        $this->restrictedPosts()
+            ->chunkById(self::CHUNK, function ($chunk) use (&$report) {
+                Db::conn()->transaction(function () use ($chunk, &$report) {
                     foreach ($chunk as $post) {
                         $discussion = $post->discussion;
                         if ($discussion && (int) $discussion->first_post_id === (int) $post->id) {
@@ -148,6 +169,6 @@ class Purger
                         $report['affectedPosts']++;
                     }
                 });
-        }
+            });
     }
 }

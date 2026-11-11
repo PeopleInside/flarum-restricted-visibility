@@ -31,6 +31,7 @@ final class Fields
                 ->set(function (AbstractModel $m, $value, Context $c) {
                     // Valida ora; la scrittura avviene dentro save() (ModelHooks), prima delle notifiche.
                     ModelHooks::ensure($m);
+                    Pending::setActor($m, $c->getActor());
                     Pending::put($m, 'groups', Repository::sanitizeGroups($c->getActor(), $value));
                 }),
 
@@ -41,6 +42,7 @@ final class Fields
                 ->get(fn (AbstractModel $m) => Repository::rows($m)['users'])
                 ->set(function (AbstractModel $m, $value, Context $c) {
                     ModelHooks::ensure($m);
+                    Pending::setActor($m, $c->getActor());
                     Pending::put($m, 'users', Repository::sanitizeUsers($c->getActor(), $value));
                 }),
 

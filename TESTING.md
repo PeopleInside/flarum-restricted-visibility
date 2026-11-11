@@ -140,3 +140,30 @@ For each test, record:
 - Any relevant log entry or reproducible steps.
 
 Do not publish private user data, email addresses, session tokens, API keys, or other secrets in public bug reports.
+
+## Permissions: create private / make existing private / make public
+
+Use non-admin accounts, each with one permission: A (*create new private*), B (*make existing private*), C (*make public*).
+
+- [ ] A creates a new discussion and a new reply with limited visibility: allowed. A restricts an already published post: rejected.
+- [ ] B restricts an already published post, and changes its recipients: allowed. B creates a new private post: rejected (no button in the composer).
+- [ ] C removes the restriction ("Everyone") from a restricted post: allowed. C restricts a post or changes recipients: rejected.
+- [ ] A or B removing a restriction: rejected, and the "Everyone" option is disabled in the modal.
+- [ ] C edits the text of a restricted post without touching visibility: allowed, restriction unchanged.
+- [ ] A user with none of the permissions sees no visibility controls and cannot send `restrictedGroupIds` / `restrictedUserIds` via the API.
+- [ ] Same checks through the API directly (POST/PATCH with the fields), not only through the UI.
+- [ ] After upgrading from 1.0.x, groups that could restrict also have *create new private* and *make public*.
+
+## Deleted recipients (content must stay restricted)
+
+- [ ] Restrict a discussion and a post to ONE group only. Delete that group. A user outside it still cannot see them; the author, a moderator with *View all restricted content* and an admin can.
+- [ ] Same with ONE user as the only recipient, deleting the user.
+- [ ] Restrict to a group and a user, delete only the group: still visible to the user, not to others.
+- [ ] The badge/label shows the content as restricted, and the modal says nobody is left in the list.
+- [ ] The author edits the text of such a post (author has *make public*): the post stays restricted.
+- [ ] A user with *make public* chooses "Everyone" on it: it becomes public. A user without that permission cannot.
+- [ ] After upgrading from 1.0.x, content that was already restricted is still restricted (markers were created for it).
+
+## Performance
+
+- [ ] With query logging on, an admin opening a discussion list or a long discussion with many restricted posts runs a constant number of queries for restriction rows and recipient names (no query per post).

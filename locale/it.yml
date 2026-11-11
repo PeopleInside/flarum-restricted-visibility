@@ -20,12 +20,20 @@ peopleinside-restricted-visibility:
       groups: "Gruppi"
       users: "Utenti"
       search_placeholder: "Cerca un utente…"
-      help: "Tu e i moderatori lo vedrete sempre. Chi non può vederlo non riceve né notifica né email. Si può solo restringere la visibilità, mai allargarla."
+      help: "Tu e i moderatori lo vedrete sempre. Chi non può vederlo non riceve né notifica né email. Puoi scegliere solo tra chi già vede la discussione: non puoi dare accesso a chi non potrebbe vederla."
       empty_error: "Scegli almeno un gruppo o un utente, oppure seleziona \"Tutti\"."
+      orphaned: "I gruppi o gli utenti a cui era riservato sono stati rimossi: ora lo vedono solo l'autore, i moderatori e gli amministratori. Scegli chi può vederlo, oppure seleziona \"Tutti\" per renderlo pubblico."
+      no_permission_public: "Non hai il permesso di rendere di nuovo pubblico questo contenuto."
+      no_permission_private: "Non hai il permesso di restringere o cambiare chi può vedere i contenuti."
+      warn_no_public: "Attenzione: non hai il permesso di rendere di nuovo pubblico un contenuto riservato. Una volta pubblicato o salvato così non potrai più tornare indietro: dovrà farlo chi ha quel permesso."
+      warn_no_private: "Attenzione: non hai il permesso di rendere privato un contenuto già esistente. Una volta pubblicato o salvato come pubblico non potrai più limitarne la visibilità: dovrà farlo chi ha quel permesso."
+      warn_no_edit_after: "Attenzione: non hai il permesso di modificare la visibilità di contenuti già pubblicati. Dopo la pubblicazione non potrai più cambiare gruppi o utenti scelti: potrai solo renderlo pubblico (se hai quel permesso) e poi non potrai più limitarlo."
       save: "Applica"
   admin:
     permissions:
-      restrict: "Restringere la visibilità dei propri post e discussioni"
+      create_private: "Creare nuovi post e discussioni privati"
+      restrict: "Rendere privati i post e le discussioni già esistenti (restringere la visibilità)"
+      make_public: "Rendere pubblici i propri post e discussioni (togliere la restrizione)"
       view_all: "Vedere tutti i contenuti riservati"
     button_position:
       label: "Posizione del pulsante nel composer"
