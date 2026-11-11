@@ -4,7 +4,7 @@ import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 
 const T = 'peopleinside-restricted-visibility.admin.purge.';
-const CONFIRM_WORD = 'ELIMINA';
+const CONFIRM_WORD = 'DELETE';
 const BASE = () => app.forum.attribute('apiUrl') + '/restricted-visibility';
 
 export default class PurgeModal extends Modal {

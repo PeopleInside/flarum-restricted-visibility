@@ -340,7 +340,7 @@ final class Repository
             ->whereIn('id', $ids)->pluck('id')->map(fn ($i) => (int) $i)->all();
 
         if (count($found) !== count($ids)) {
-            throw new ValidationException(['restrictedGroupIds' => 'Uno o più gruppi non sono validi.']);
+            throw new ValidationException(['restrictedGroupIds' => self::t('invalid_groups')]);
         }
 
         return $ids;
@@ -359,10 +359,17 @@ final class Repository
         $found = User::query()->whereVisibleTo($actor)->whereIn('id', $ids)->pluck('id')->all();
 
         if (count($found) !== count($ids)) {
-            throw new ValidationException(['restrictedUserIds' => 'Uno o più utenti non sono validi.']);
+            throw new ValidationException(['restrictedUserIds' => self::t('invalid_users')]);
         }
 
         return $ids;
+    }
+
+    /** Messaggio di errore tradotto nella lingua del forum. */
+    private static function t(string $key): string
+    {
+        return \Illuminate\Container\Container::getInstance()->make('translator')
+            ->trans(Constants::ID.'.api.'.$key);
     }
 
     /** @return int[] */
@@ -372,7 +379,7 @@ final class Repository
             return [];
         }
         if (! is_array($value) || count($value) > $max) {
-            throw new ValidationException([$field => 'Valore non valido.']);
+            throw new ValidationException([$field => self::t('invalid_value')]);
         }
         $out = [];
         foreach ($value as $v) {
@@ -383,7 +390,7 @@ final class Repository
                     continue;
                 }
             }
-            throw new ValidationException([$field => 'Valore non valido.']);
+            throw new ValidationException([$field => self::t('invalid_value')]);
         }
 
         return array_values($out);

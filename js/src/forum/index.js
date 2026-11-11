@@ -231,7 +231,12 @@ app.initializers.add(ID, () => {
             refreshPosts(model);
             m.redraw();
           })
-          .catch(() => {}),
+          .catch((e) => {
+            app.alerts.show(
+              { type: 'error' },
+              e?.response?.errors?.[0]?.detail || app.translator.trans('core.lib.error.generic_message')
+            );
+          }),
     });
 
   import('flarum/forum/utils/PostControls').then(({ default: PostControls }) => {
