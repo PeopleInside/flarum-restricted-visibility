@@ -122,6 +122,9 @@ export default class VisibilityModal extends Modal {
         {this.attrs.noMakePrivate && this.mode === 'all' && (this.attrs.isNew || this.wasRestricted) && (
           <p className="PeopleInsideVisibilityModal-error">{app.translator.trans(T + 'warn_no_private')}</p>
         )}
+        {this.attrs.noMakePrivate && this.attrs.isNew && this.mode === 'some' && (
+          <p className="PeopleInsideVisibilityModal-error">{app.translator.trans(T + 'warn_no_edit_after')}</p>
+        )}
         {this.attrs.noMakePublic && this.mode === 'some' && (
           <p className="PeopleInsideVisibilityModal-error">{app.translator.trans(T + 'warn_no_public')}</p>
         )}

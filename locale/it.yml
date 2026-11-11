@@ -27,6 +27,7 @@ peopleinside-restricted-visibility:
       no_permission_private: "Non hai il permesso di restringere o cambiare chi può vedere i contenuti."
       warn_no_public: "Attenzione: non hai il permesso di rendere di nuovo pubblico un contenuto riservato. Una volta pubblicato o salvato così non potrai più tornare indietro: dovrà farlo chi ha quel permesso."
       warn_no_private: "Attenzione: non hai il permesso di rendere privato un contenuto già esistente. Una volta pubblicato o salvato come pubblico non potrai più limitarne la visibilità: dovrà farlo chi ha quel permesso."
+      warn_no_edit_after: "Attenzione: non hai il permesso di modificare la visibilità di contenuti già pubblicati. Dopo la pubblicazione non potrai più cambiare gruppi o utenti scelti: potrai solo renderlo pubblico (se hai quel permesso) e poi non potrai più limitarlo."
       save: "Applica"
   admin:
     permissions:
