@@ -314,7 +314,7 @@ For bug reports and feature requests, you can also use the repository's [GitHub 
 
 ## License
 
-This extension is released under the [MIT License](LICENSE).
+This extension is released under the Apache License 2.0
 
 ## Author
 
