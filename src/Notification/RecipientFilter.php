@@ -33,6 +33,8 @@ class RecipientFilter
             return $recipients;
         }
 
+        $this->preloadGroups($recipients);
+
         return array_values(array_filter($recipients, function (User $user) use ($rules) {
             foreach ($rules as $rule) {
                 if (! $rule->allows($user)) {
@@ -42,6 +44,33 @@ class RecipientFilter
 
             return true;
         }));
+    }
+
+    /**
+     * Carica i gruppi di tutti i destinatari con una sola query (evita N+1 in GroupIds::for).
+     *
+     * @param User[] $recipients
+     */
+    private function preloadGroups(array $recipients): void
+    {
+        $missing = [];
+        foreach ($recipients as $user) {
+            if ($user->exists && ! $user->relationLoaded('groups')) {
+                $missing[$user->id] = $user;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        $loaded = User::with('groups')->whereIn('id', array_keys($missing))->get()->keyBy('id');
+
+        foreach ($missing as $id => $user) {
+            if ($loaded->has($id)) {
+                $user->setRelation('groups', $loaded->get($id)->groups);
+            }
+        }
     }
 
     /**
