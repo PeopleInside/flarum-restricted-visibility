@@ -61,3 +61,4 @@ peopleinside-restricted-visibility:
       done: "Done. Discussions affected: {discussions}, posts affected: {posts}."
       next_steps: "Next: 1) disable the extension, 2) click \"Delete data\" on the extension page to drop its tables, 3) composer remove peopleinside/flarum-restricted-visibility."
       close: "Close"
+      error_retry: "If the operation was interrupted (timeout), content not yet processed is still restricted: you can run it again. On large forums use the command line: php flarum peopleinside-restricted-visibility:purge"

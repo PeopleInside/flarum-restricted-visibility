@@ -35,6 +35,11 @@ class PurgeController implements RequestHandlerInterface
             throw new ValidationException(['mode' => 'Modalità non valida.']);
         }
 
+        // Su forum grandi l'operazione può superare i tempi PHP predefiniti e l'admin può chiudere la
+        // pagina: si continua comunque. Resta sicura da rilanciare (vedi Purger) e c'è il comando CLI.
+        ignore_user_abort(true);
+        @set_time_limit(0);
+
         return new JsonResponse(['data' => $this->purger->purge($mode, $actor)]);
     }
 }

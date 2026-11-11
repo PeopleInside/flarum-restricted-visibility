@@ -15,6 +15,7 @@ export default class PurgeModal extends Modal {
     this.confirmation = '';
     this.running = false;
     this.report = null;
+    this.error = null;
 
     app.request({ method: 'GET', url: BASE() + '/purge-preview' }).then((r) => {
       this.preview = r.data;
@@ -59,6 +60,13 @@ export default class PurgeModal extends Modal {
           <input className="FormControl" value={this.confirmation} oninput={(e) => (this.confirmation = e.target.value)} autocomplete="off" />
         </div>
 
+        {this.error && (
+          <div className="Alert Alert--error" style="margin:12px 0">
+            <p>{this.error}</p>
+            <p>{app.translator.trans(T + 'error_retry')}</p>
+          </div>
+        )}
+
         <Button
           className="Button Button--danger"
           loading={this.running}
@@ -84,12 +92,15 @@ export default class PurgeModal extends Modal {
 
   run() {
     this.running = true;
+    this.error = null;
     app
       .request({ method: 'POST', url: BASE() + '/purge', body: { mode: this.mode, confirmation: this.confirmation } })
       .then((r) => {
         this.report = r.data;
       })
-      .catch(() => {})
+      .catch((e) => {
+        this.error = e?.response?.errors?.[0]?.detail || app.translator.trans('core.lib.error.generic_message');
+      })
       .then(() => {
         this.running = false;
         m.redraw();
