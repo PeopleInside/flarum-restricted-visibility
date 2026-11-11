@@ -83,7 +83,11 @@ export default class PurgeModal extends Modal {
     const r = this.report;
     return (
       <div className="Modal-body">
-        <p>{app.translator.trans(T + 'done', { discussions: r.affectedDiscussions, posts: r.affectedPosts })}</p>
+        <p>
+          {r.status === 'queued'
+            ? app.translator.trans(T + 'queued')
+            : app.translator.trans(T + 'done', { discussions: r.affectedDiscussions, posts: r.affectedPosts })}
+        </p>
         <p><strong>{app.translator.trans(T + 'next_steps')}</strong></p>
         <Button className="Button" onclick={() => this.hide()}>{app.translator.trans(T + 'close')}</Button>
       </div>
