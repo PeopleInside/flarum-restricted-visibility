@@ -3,7 +3,8 @@
 namespace PeopleInside\RestrictedVisibility\Api;
 
 use PeopleInside\RestrictedVisibility\Constants;
-use PeopleInside\RestrictedVisibility\Purge\Purger;
+use PeopleInside\RestrictedVisibility\Jobs\PurgeJob;
+use Illuminate\Contracts\Queue\Queue;
 use Flarum\Foundation\ValidationException;
 use Flarum\Http\RequestUtil;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -13,7 +14,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class PurgeController implements RequestHandlerInterface
 {
-    public function __construct(protected Purger $purger)
+    public function __construct(protected Queue $queue)
     {
     }
 
@@ -35,11 +36,11 @@ class PurgeController implements RequestHandlerInterface
             throw new ValidationException(['mode' => 'Modalità non valida.']);
         }
 
-        // Su forum grandi l'operazione può superare i tempi PHP predefiniti e l'admin può chiudere la
-        // pagina: si continua comunque. Resta sicura da rilanciare (vedi Purger) e c'è il comando CLI.
-        ignore_user_abort(true);
-        @set_time_limit(0);
+        // La pulizia può richiedere molto tempo: va in coda e la richiesta termina subito.
+        // Con il driver di coda "sync" il job gira comunque in linea; per veri vantaggi
+        // serve un worker (php flarum queue:work). In alternativa c'è il comando CLI.
+        $this->queue->push(new PurgeJob($mode, $actor->id));
 
-        return new JsonResponse(['data' => $this->purger->purge($mode, $actor)]);
+        return new JsonResponse(['data' => ['mode' => $mode, 'status' => 'queued']], 202);
     }
 }

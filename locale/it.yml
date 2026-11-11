@@ -59,6 +59,7 @@ peopleinside-restricted-visibility:
       type_to_confirm: "Digita {word} per continuare"
       run: "Elimina i dati"
       done: "Fatto. Discussioni interessate: {discussions}, post interessati: {posts}."
+      queued: "Operazione messa in coda ed eseguita in background. NON disattivare l'estensione finché non è terminata (controlla il worker della coda / i log)."
       next_steps: "Ora: 1) disattiva l'estensione, 2) clicca \"Elimina dati\" nella pagina dell'estensione per rimuovere le tabelle, 3) composer remove peopleinside/flarum-restricted-visibility."
       close: "Chiudi"
       error_retry: "Se l'operazione è stata interrotta (timeout), i contenuti non ancora trattati sono ancora riservati: puoi rilanciarla. Su forum grandi usa il comando da terminale: php flarum peopleinside-restricted-visibility:purge"
