@@ -297,7 +297,7 @@ You are responsible for:
 - Verifying compatibility with your installed extensions and integrations.
 - Assessing whether the extension meets your security and privacy requirements.
 
-The author is not liable for direct or indirect damages, data loss, unauthorized access, service interruptions, or other consequences resulting from the installation, use, or inability to use this extension, to the extent permitted by applicable law.
+The author is not liable for direct or indirect damages, data loss, unauthorized access, service interruptions, or other consequences resulting from the installation, use, or inability to use this extension.
 
 ## Support
 
