@@ -26,7 +26,7 @@ peopleinside-restricted-visibility:
       no_permission_public: "You are not allowed to make this content public again."
       no_permission_private: "You are not allowed to restrict or change who can see content."
       warn_no_public: "Warning: you do not have permission to make restricted content public again. Once it is posted or saved like this you cannot undo it: someone with that permission will have to do it."
-      warn_no_private: "Warning: you do not have permission to make existing content private. Once it is made public you cannot restrict it again: someone with that permission will have to do it."
+      warn_no_private: "Warning: you do not have permission to make existing content private. Once it is posted or saved as public you cannot restrict it again: someone with that permission will have to do it."
       save: "Apply"
   admin:
     permissions:
