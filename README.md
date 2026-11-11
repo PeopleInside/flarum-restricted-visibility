@@ -30,7 +30,7 @@ This extension is not compatible with Flarum 1.x.
 
 ### Admin Interface
 
-<img width="1636" height="667" alt="701573721-0dc2090c-a55f-4acf-8154-8e12abfe53c0" src="https://github.com/user-attachments/assets/1b2cf68f-bc6a-4f90-ade0-74fcb60b25e6" />
+<img width="1645" height="900" alt="Screenshot 2026-11-11 122437" src="https://github.com/user-attachments/assets/225c645c-22ad-4cdd-9ba7-adb175b4dcf5" />
 
 ### Composing message interface
 Flarum discussion composer interface. 
