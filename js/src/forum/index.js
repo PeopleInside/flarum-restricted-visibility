@@ -155,6 +155,8 @@ app.initializers.add(ID, () => {
             groupIds: f.restrictedGroupIds || [],
             users: f.restrictedUsers || [],
             restricted: active || !!composer.body?.attrs?.post?.isRestricted?.(),
+            isNew: !editing,
+            noMakePublic: !canMakePublic(),
             canMakePrivate: mayPrivate,
             // Contenuto nuovo: tornare a "tutti" non è "rendere pubblico" qualcosa di già riservato,
             // quindi non serve il permesso. In modifica sì.
@@ -216,6 +218,8 @@ app.initializers.add(ID, () => {
       groupIds: model.restrictedGroupIds?.() || [],
       users: model.restrictedUsers?.() || [],
       restricted: !!model.isRestricted?.(),
+      isNew: false,
+      noMakePublic: !canMakePublic(),
       canMakePrivate: canMakePrivate(),
       canMakePublic: canMakePublic(),
       onsave: (groupIds, users) =>

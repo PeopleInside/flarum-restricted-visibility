@@ -25,6 +25,7 @@ peopleinside-restricted-visibility:
       orphaned: "I gruppi o gli utenti a cui era riservato sono stati rimossi: ora lo vedono solo l'autore, i moderatori e gli amministratori. Scegli chi può vederlo, oppure seleziona \"Tutti\" per renderlo pubblico."
       no_permission_public: "Non hai il permesso di rendere di nuovo pubblico questo contenuto."
       no_permission_private: "Non hai il permesso di restringere o cambiare chi può vedere i contenuti."
+      warn_no_public: "Attenzione: non hai il permesso di rendere di nuovo pubblico un contenuto riservato. Una volta pubblicato o salvato così non potrai più tornare indietro: dovrà farlo chi ha quel permesso."
       save: "Applica"
   admin:
     permissions:

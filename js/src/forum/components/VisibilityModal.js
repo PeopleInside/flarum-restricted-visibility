@@ -120,6 +120,9 @@ export default class VisibilityModal extends Modal {
         <p className="helpText">{app.translator.trans(T + 'help')}</p>
         {this.wasRestricted && !this.canPublic && <p className="helpText">{app.translator.trans(T + 'no_permission_public')}</p>}
         {!this.canPrivate && <p className="helpText">{app.translator.trans(T + 'no_permission_private')}</p>}
+        {this.attrs.noMakePublic && this.mode === 'some' && (this.attrs.isNew || !this.wasRestricted) && (
+          <p className="PeopleInsideVisibilityModal-error">{app.translator.trans(T + 'warn_no_public')}</p>
+        )}
         {this.error && <p className="PeopleInsideVisibilityModal-error">{this.error}</p>}
 
         <div className="Form-group">

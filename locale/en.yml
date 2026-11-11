@@ -25,6 +25,7 @@ peopleinside-restricted-visibility:
       orphaned: "Everyone this was restricted to has been removed, so now only the author, moderators and administrators can see it. Choose who can see it, or select \"Everyone\" to make it public."
       no_permission_public: "You are not allowed to make this content public again."
       no_permission_private: "You are not allowed to restrict or change who can see content."
+      warn_no_public: "Warning: you do not have permission to make restricted content public again. Once it is posted or saved like this you cannot undo it: someone with that permission will have to do it."
       save: "Apply"
   admin:
     permissions:
