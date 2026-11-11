@@ -1,0 +1,64 @@
+name: Release package
+
+# Quando pubblichi una release su GitHub, crea lo zip pronto da installare e lo allega alla release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write   # serve per allegare lo zip alla release
+
+env:
+  EXT_DIR: flarum-restricted-visibility   # nome della cartella DENTRO lo zip (senza numero di versione)
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del tag della release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Calcola la versione dal tag
+        id: ver
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"                       # "v1.2.3" e "1.2.3" diventano entrambi "1.2.3"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip=flarum-restricted-visibility-$VERSION.zip" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+
+      - name: Compila il JavaScript (js/dist) dal sorgente del tag
+        working-directory: js
+        run: |
+          npm ci
+          npm run build
+
+      - name: Controlla che il pacchetto sia completo
+        run: |
+          for f in composer.json extend.php js/dist/forum.js js/dist/admin.js; do
+            test -f "$f" || { echo "::error::Manca $f"; exit 1; }
+          done
+
+      - name: Prepara la cartella e crea lo zip
+        run: |
+          mkdir -p "build/$EXT_DIR"
+          rsync -a ./ "build/$EXT_DIR/" \
+            --exclude '.git' --exclude '.github' --exclude '.gitignore' \
+            --exclude 'build' --exclude 'js/node_modules'
+          cd build
+          zip -rq "../${{ steps.ver.outputs.zip }}" "$EXT_DIR"
+          cd ..
+          echo "Contenuto principale dello zip:"
+          unzip -l "${{ steps.ver.outputs.zip }}" | head -25
+
+      - name: Allega lo zip alla release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.ver.outputs.zip }}" --clobber

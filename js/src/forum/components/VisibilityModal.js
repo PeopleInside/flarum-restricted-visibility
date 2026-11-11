@@ -8,7 +8,7 @@ const T = 'peopleinside-restricted-visibility.forum.modal.';
 const GUEST_GROUP_ID = '2';
 
 /**
- * attrs: { groupIds: string[]|number[], users: {id, name, avatarUrl}[], onsave(groupIds: string[], users: {id,name,avatarUrl}[]) }
+ * attrs: { groupIds, users, canMakePrivate?: boolean, canMakePublic?: boolean, restricted?: boolean, onsave(groupIds: string[], users: {id,name,avatarUrl}[]) }
  */
 export default class VisibilityModal extends Modal {
   oninit(vnode) {
@@ -16,7 +16,13 @@ export default class VisibilityModal extends Modal {
 
     this.groupIds = new Set((this.attrs.groupIds || []).map(String));
     this.users = [...(this.attrs.users || [])];
-    this.mode = this.groupIds.size + this.users.length > 0 ? 'some' : 'all';
+    // "Riservato" può valere anche senza destinatari (gruppo o utente cancellati).
+    this.orphaned = !!this.attrs.restricted && this.groupIds.size + this.users.length === 0;
+    this.wasRestricted = !!this.attrs.restricted || this.groupIds.size + this.users.length > 0;
+    this.mode = this.wasRestricted ? 'some' : 'all';
+    // Permessi: restringere/modificare = "rendere privato"; tornare a tutti = "rendere pubblico".
+    this.canPrivate = this.attrs.canMakePrivate !== false;
+    this.canPublic = this.attrs.canMakePublic !== false;
     this.query = '';
     this.results = [];
     this.searching = false;
@@ -39,11 +45,17 @@ export default class VisibilityModal extends Modal {
       <div className="Modal-body">
         <div className="Form-group">
           <label className="checkbox">
-            <input type="radio" name="peopleinside-mode" checked={this.mode === 'all'} onchange={() => (this.mode = 'all')} />
+            <input
+              type="radio"
+              name="peopleinside-mode"
+              checked={this.mode === 'all'}
+              disabled={this.wasRestricted && !this.canPublic}
+              onchange={() => (this.mode = 'all')}
+            />
             {app.translator.trans(T + 'everyone')}
           </label>
           <label className="checkbox">
-            <input type="radio" name="peopleinside-mode" checked={this.mode === 'some'} onchange={() => (this.mode = 'some')} />
+            <input type="radio" name="peopleinside-mode" checked={this.mode === 'some'} disabled={!this.canPrivate} onchange={() => (this.mode = 'some')} />
             {app.translator.trans(T + 'only_some')}
           </label>
         </div>
@@ -57,6 +69,7 @@ export default class VisibilityModal extends Modal {
                   <input
                     type="checkbox"
                     checked={this.groupIds.has(group.id())}
+                    disabled={!this.canPrivate}
                     onchange={(e) => (e.target.checked ? this.groupIds.add(group.id()) : this.groupIds.delete(group.id()))}
                   />
                   {group.namePlural()}
@@ -71,19 +84,21 @@ export default class VisibilityModal extends Modal {
                   <span className="PeopleInsideVisibilityModal-chip">
                     {miniAvatar(u)}
                     <span className="PeopleInsideVisibilityModal-chipName">{u.name}</span>
-                    <button type="button" className="Button Button--icon Button--link" onclick={() => this.removeUser(u.id)} aria-label="remove">
-                      <i className="fas fa-times" />
-                    </button>
+                    {this.canPrivate && (
+                      <button type="button" className="Button Button--icon Button--link" onclick={() => this.removeUser(u.id)} aria-label="remove">
+                        <i className="fas fa-times" />
+                      </button>
+                    )}
                   </span>
                 ))}
               </div>
-              <input
+              {this.canPrivate && <input
                 className="FormControl"
                 type="search"
                 placeholder={app.translator.trans(T + 'search_placeholder')}
                 value={this.query}
                 oninput={(e) => this.onSearch(e.target.value)}
-              />
+              />}
               {this.results.length > 0 && (
                 <ul className="Dropdown-menu PeopleInsideVisibilityModal-results" style="display:block;position:static;margin-top:4px">
                   {this.results.map((u) => (
@@ -101,7 +116,10 @@ export default class VisibilityModal extends Modal {
           </div>
         )}
 
+        {this.orphaned && <p className="helpText">{app.translator.trans(T + 'orphaned')}</p>}
         <p className="helpText">{app.translator.trans(T + 'help')}</p>
+        {this.wasRestricted && !this.canPublic && <p className="helpText">{app.translator.trans(T + 'no_permission_public')}</p>}
+        {!this.canPrivate && <p className="helpText">{app.translator.trans(T + 'no_permission_private')}</p>}
         {this.error && <p className="PeopleInsideVisibilityModal-error">{this.error}</p>}
 
         <div className="Form-group">
@@ -145,6 +163,11 @@ export default class VisibilityModal extends Modal {
   }
 
   submit() {
+    // Senza il permesso di restringere non si può modificare nulla di ciò che è già riservato.
+    if (!this.canPrivate && this.mode === 'some') {
+      this.hide();
+      return;
+    }
     if (this.mode === 'all') {
       this.attrs.onsave([], []);
       this.hide();

@@ -41,28 +41,26 @@ return [
     (new Extend\ModelVisibility(Post::class))
         ->scope(Access\PostScope::class),
 
-    // Campi API.
+    // Campi API. Prima della serializzazione si precarica in blocco ciò che serve a tutta la pagina
+    // (righe di restrizione, conteggi, nomi dei destinatari): niente query per ogni modello.
     (new Extend\ApiResource(Resource\PostResource::class))
-        ->fields(fn () => Fields::build('post')),
+        ->fields(fn () => Fields::build('post'))
+        ->endpoint([Endpoint\Index::class, Endpoint\Show::class], fn ($endpoint) => $endpoint->after(
+            function (Context $context, mixed $data) {
+                Repository::preload($data, $context->getActor());
+
+                return $data;
+            }
+        )),
 
     (new Extend\ApiResource(Resource\DiscussionResource::class))
         ->fields(fn () => array_merge(Fields::build('discussion'), [
             Schema\Integer::make('restrictedPostCount')
                 ->get(fn (Discussion $d, Context $c) => Repository::postCount($d, $c->getActor())),
         ]))
-        ->endpoint(Endpoint\Index::class, fn (Endpoint\Index $endpoint) => $endpoint->after(
+        ->endpoint([Endpoint\Index::class, Endpoint\Show::class], fn ($endpoint) => $endpoint->after(
             function (Context $context, mixed $data) {
-                // Ottimizzazione: una sola query per tutte le discussioni della pagina.
-                $items = is_iterable($data) ? $data : [];
-                $ids = [];
-                foreach ($items as $item) {
-                    if ($item instanceof Discussion) {
-                        $ids[] = (int) $item->id;
-                    }
-                }
-                if ($ids) {
-                    Repository::preloadPostCounts($ids, $context->getActor());
-                }
+                Repository::preload($data, $context->getActor());
 
                 return $data;
             }
@@ -70,8 +68,15 @@ return [
 
     (new Extend\ApiResource(Resource\ForumResource::class))
         ->fields(fn () => [
+            // Compatibilità: vero se l'utente può usare almeno uno dei due permessi.
             Schema\Boolean::make('peopleinsideCanRestrictVisibility')
                 ->get(fn ($forum, Context $c) => Authz::mayUseUi($c->getActor())),
+            Schema\Boolean::make('peopleinsideCanCreatePrivate')
+                ->get(fn ($forum, Context $c) => Authz::mayCreatePrivate($c->getActor())),
+            Schema\Boolean::make('peopleinsideCanMakePrivate')
+                ->get(fn ($forum, Context $c) => Authz::mayMakePrivate($c->getActor())),
+            Schema\Boolean::make('peopleinsideCanMakePublic')
+                ->get(fn ($forum, Context $c) => Authz::mayMakePublic($c->getActor())),
         ]),
 
     // Filtro centralizzato dei destinatari: nessun alert e nessuna email a chi non può vedere.

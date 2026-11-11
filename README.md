@@ -22,7 +22,7 @@ Users who are not authorized to view restricted content cannot access it through
 ## Requirements
 
 - Flarum 2.x
-- PHP 8.2 or later
+- PHP 8.3 or later
 
 This extension is not compatible with Flarum 1.x.
 
@@ -33,15 +33,10 @@ This extension is not compatible with Flarum 1.x.
 <img width="1636" height="667" alt="Screenshot 2026-11-10 233810" src="https://github.com/user-attachments/assets/0dc2090c-a55f-4acf-8154-8e12abfe53c0" />
 
 ### Composing message interface
-Flarum discussion composer interface.
-By default the eye icon is showed after the 'Post Discussion' or the 'Post Reply' but can be moved in the extension settings.
+Flarum discussion composer interface. 
 Note the crossed-out eye icon button positioned immediately before the 'Post Discussion' button. This control allows the user to toggle and activate visibility restrictions for the topic before publishing.
 
 <img width="1110" height="341" alt="Screenshot 2026-11-10 233350" src="https://github.com/user-attachments/assets/a01f0a2e-0efd-44e0-9bc0-87f3343580f8" />
-...
-<img width="1111" height="334" alt="Screenshot 2026-11-11 001640" src="https://github.com/user-attachments/assets/819f16af-4039-41bd-95c6-e155cb57ed1a" />
-...
-<img width="1130" height="349" alt="Screenshot 2026-11-11 001713" src="https://github.com/user-attachments/assets/4a964a79-8827-41db-8592-deb169fd9561" />
 
 ### When the eye icon is clicked on the composing window
 you can see a Pop-up with options
@@ -82,14 +77,22 @@ Finally, enable the extension from the Flarum administration panel and configure
 
 Go to **Administration → Permissions** to configure the following permissions.
 
-| Permission | Recommended users | Description |
-| --- | --- | --- |
-| Restrict the visibility of their own posts and discussions | Trusted users | Allows users to restrict the visibility of their own content. |
-| View all restricted content | Moderators | Allows users to bypass visibility restrictions and manage restrictions created by others. |
+| Permission                                                    | Recommended users | Description                                                                                             |
+| ------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
+| Create new private posts and discussions                       | Trusted users     | Allows users to publish a **new** discussion or reply with limited visibility.                          |
+| Make existing posts and discussions private                    | Trusted users     | Allows users to restrict content that is **already published**, or change who can see it.               |
+| Make own posts and discussions public (remove restrictions)    | Trusted users     | Allows users to make their own restricted content visible again to everyone who can see the discussion. |
+| View all restricted content                                    | Moderators        | Allows users to bypass visibility restrictions and manage restrictions created by others.               |
 
-Administrators always have both permissions.
+The permissions are independent and enforced on the server. For example, a user with only *create new private*
+can publish restricted content but cannot restrict, change or undo an existing one.
+Changing the recipients of already restricted content counts as *make existing private*.
+
+Administrators always have all permissions.
 
 No permissions are granted automatically to other groups.
+
+> **Upgrading from 1.0.x:** the migration gives *create new private* and *make public* to every group that already had the restrict permission (now *make existing private*), so behavior does not change. Remove them from **Administration → Permissions** where you want a stricter setup.
 
 ## Usage
 
@@ -124,6 +127,7 @@ Users who are not authorized to see restricted content do not receive informatio
 - Only the author and users with the visibility bypass permission can see the list of selected recipients.
 - Authorized recipients see a restricted-content indicator.
 - Users without the appropriate permissions cannot change restrictions created by others.
+- **If every group and user a content was restricted to is deleted, the content stays restricted**: only its author, users with *View all restricted content* and administrators can see it, until someone with the *make public* permission publishes it. It never becomes public by itself.
 
 ## Security considerations
 
@@ -157,11 +161,11 @@ This also takes into account notification blueprints that may contain multiple r
 
 Extension data removal is restricted to administrators.
 
-The operation uses Flarum's CSRF protection, server-side confirmation validation, and a database transaction.
+The operation uses Flarum's CSRF protection and server-side confirmation validation. Content is processed in chunks of 100 models, each in its own short transaction; restriction links, permissions and settings are removed last. If it is interrupted, content not yet processed stays restricted and the command can simply be run again.
 
 ### Database relationships
 
-Foreign keys use `ON DELETE CASCADE` so related restriction records are removed when their associated posts, discussions, users, or groups are deleted.
+Foreign keys use `ON DELETE CASCADE` so related records are removed when their posts, discussions, users, or groups are deleted. A separate restriction marker (`restricted_discussions`, `restricted_posts`) is not tied to recipients, so deleting the last allowed group or user does not make content public.
 
 ## Known limitations
 

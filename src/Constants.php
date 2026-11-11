@@ -5,7 +5,12 @@ namespace PeopleInside\RestrictedVisibility;
 final class Constants
 {
     public const ID = 'peopleinside-restricted-visibility';
-    public const PERM_RESTRICT = 'peopleinside-restricted-visibility.restrict';
+    /** Creare NUOVI contenuti privati (nuova discussione o nuova risposta con visibilità limitata). */
+    public const PERM_CREATE_PRIVATE = 'peopleinside-restricted-visibility.createPrivate';
+    /** Rendere privato un contenuto ESISTENTE (o cambiarne i destinatari). Nome nel database invariato: ".restrict". */
+    public const PERM_MAKE_PRIVATE = 'peopleinside-restricted-visibility.restrict';
+    /** Rendere pubblico (rimuovere la restrizione). */
+    public const PERM_MAKE_PUBLIC = 'peopleinside-restricted-visibility.makePublic';
     public const PERM_VIEW_ALL = 'peopleinside-restricted-visibility.viewAll';
     public const CONFIRM_WORD = 'ELIMINA';
     public const MAX_GROUPS = 50;

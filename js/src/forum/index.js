@@ -1,8 +1,6 @@
 import app from 'flarum/forum/app';
 import { extend } from 'flarum/common/extend';
-import Model from 'flarum/common/Model';
 import Discussion from 'flarum/common/models/Discussion';
-import Post from 'flarum/common/models/Post';
 import Badge from 'flarum/common/components/Badge';
 import Button from 'flarum/common/components/Button';
 
@@ -18,16 +16,11 @@ const ID = 'peopleinside-restricted-visibility';
  * importati normalmente.
  */
 app.initializers.add(ID, () => {
-  // ---- modelli
-  for (const Klass of [Discussion, Post]) {
-    Klass.prototype.isRestricted = Model.attribute('isRestricted');
-    Klass.prototype.canRestrictVisibility = Model.attribute('canRestrictVisibility');
-    Klass.prototype.restrictedGroupIds = Model.attribute('restrictedGroupIds');
-    Klass.prototype.restrictedUsers = Model.attribute('restrictedUsers');
-  }
-  Discussion.prototype.restrictedPostCount = Model.attribute('restrictedPostCount');
+  // Gli attributi dei modelli sono registrati in ./extend.js (Extend.Model).
 
-  const canUse = () => !!app.forum.attribute('peopleinsideCanRestrictVisibility');
+  const canCreatePrivate = () => !!app.forum.attribute('peopleinsideCanCreatePrivate');
+  const canMakePrivate = () => !!app.forum.attribute('peopleinsideCanMakePrivate');
+  const canMakePublic = () => !!app.forum.attribute('peopleinsideCanMakePublic');
 
   // ---- badge sulle discussioni (elenco e testata). Icona diversa dal lucchetto della discussione bloccata.
   extend(Discussion.prototype, 'badges', function (badges) {
@@ -125,7 +118,12 @@ app.initializers.add(ID, () => {
   extend('flarum/common/components/TextEditor', 'controlItems', function (items) {
     const composer = this.attrs.composer;
     // Solo l'editor del composer principale (nuova discussione, risposta, modifica).
-    if (!canUse() || !composer || composer !== app.composer) return;
+    if (!composer || composer !== app.composer) return;
+    // Contenuto nuovo: serve "creare nuovi contenuti privati". In modifica: "rendere privato" (esistente) o "rendere pubblico".
+    const editing = !!composer.body?.attrs?.post;
+    const mayPrivate = editing ? canMakePrivate() : canCreatePrivate();
+    const mayPublic = editing && canMakePublic();
+    if (!(mayPrivate || mayPublic)) return;
 
     const f = composer.fields;
     const active = (f.restrictedGroupIds || []).length + (f.restrictedUserIds || []).length > 0;
@@ -156,6 +154,9 @@ app.initializers.add(ID, () => {
           app.modal.show(VisibilityModal, {
             groupIds: f.restrictedGroupIds || [],
             users: f.restrictedUsers || [],
+            restricted: active || !!composer.body?.attrs?.post?.isRestricted?.(),
+            canMakePrivate: mayPrivate,
+            canMakePublic: mayPublic,
             onsave: (groupIds, users) => {
               f.restrictedGroupIds = groupIds;
               f.restrictedUsers = users;
@@ -186,6 +187,9 @@ app.initializers.add(ID, () => {
     const post = this.attrs.post;
     if (!post.canRestrictVisibility?.()) return;
     const f = this.attrs.composer.fields;
+    // Riservato ma senza più destinatari (cancellati): non si invia nulla, altrimenti salvare il testo
+    // equivarrebbe a rendere pubblico il post. Cambia solo se l'utente apre "Chi può vederlo?" e conferma.
+    if (post.isRestricted?.() && (post.restrictedGroupIds?.() || []).length + (post.restrictedUsers?.() || []).length === 0) return;
     f.restrictedGroupIds = (post.restrictedGroupIds?.() || []).map(String);
     f.restrictedUsers = post.restrictedUsers?.() || [];
     f.restrictedUserIds = f.restrictedUsers.map((u) => u.id);
@@ -196,6 +200,9 @@ app.initializers.add(ID, () => {
     app.modal.show(VisibilityModal, {
       groupIds: model.restrictedGroupIds?.() || [],
       users: model.restrictedUsers?.() || [],
+      restricted: !!model.isRestricted?.(),
+      canMakePrivate: canMakePrivate(),
+      canMakePublic: canMakePublic(),
       onsave: (groupIds, users) =>
         model
           .save({ restrictedGroupIds: groupIds, restrictedUserIds: users.map((u) => u.id) })
@@ -227,3 +234,6 @@ app.initializers.add(ID, () => {
     });
   });
 });
+
+// Obbligatorio in Flarum 2.x: senza questa riga gli extender (attributi dei modelli) non vengono eseguiti.
+export { default as extend } from './extend';

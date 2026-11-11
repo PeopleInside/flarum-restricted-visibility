@@ -19,7 +19,7 @@ final class Scope
      * Aggiunge le condizioni (raggruppate, quindi in AND con tutti gli altri scope) per
      * il modello $kind ('post' | 'discussion') la cui tabella è $table.
      *
-     * Visibile se: non esistono restrizioni, OPPURE l'utente ha un gruppo elencato,
+     * Visibile se: non esiste alcuna restrizione, OPPURE l'utente ha un gruppo elencato,
      * OPPURE è un utente elencato, OPPURE è l'autore.
      */
     public static function conditions($q, User $actor, string $kind, string $table): void
@@ -30,7 +30,11 @@ final class Scope
         $userId = (int) $actor->id;
 
         $q->where(function ($open) use ($t, $table, $fk) {
+            // Pubblico solo se NON c'è il marcatore e NON ci sono destinatari. Il marcatore resta anche
+            // quando i destinatari vengono cancellati: il contenuto non torna pubblico da solo.
             $open->whereNotExists(function ($s) use ($t, $table, $fk) {
+                $s->selectRaw('1')->from($t['marker'])->whereColumn($t['marker'].'.'.$fk, $table.'.id');
+            })->whereNotExists(function ($s) use ($t, $table, $fk) {
                 $s->selectRaw('1')->from($t['groups'])->whereColumn($t['groups'].'.'.$fk, $table.'.id');
             })->whereNotExists(function ($s) use ($t, $table, $fk) {
                 $s->selectRaw('1')->from($t['users'])->whereColumn($t['users'].'.'.$fk, $table.'.id');

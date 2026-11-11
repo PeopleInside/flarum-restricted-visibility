@@ -14,13 +14,15 @@ final class Rule
     public function __construct(
         public readonly array $groups,
         public readonly array $users,
-        public readonly ?int $authorId
+        public readonly ?int $authorId,
+        public readonly bool $restricted = false
     ) {
     }
 
     public function isRestricted(): bool
     {
-        return $this->groups !== [] || $this->users !== [];
+        // Il marcatore conta anche senza destinatari (es. gruppo o utente cancellati): resta riservato.
+        return $this->restricted || $this->groups !== [] || $this->users !== [];
     }
 
     public function allows(User $user): bool
