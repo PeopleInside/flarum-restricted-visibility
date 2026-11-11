@@ -17,14 +17,7 @@ class PostScope
             Scope::conditions($q, $actor, 'post', 'posts');
         });
 
-        // Difesa in profondità: il core già filtra i post per visibilità della discussione,
-        // ma qui la ripetiamo esplicitamente così la sicurezza non dipende da quel dettaglio.
-        $query->whereExists(function ($s) use ($actor) {
-            $s->selectRaw('1')->from('discussions')
-                ->whereColumn('discussions.id', 'posts.discussion_id')
-                ->where(function ($q) use ($actor) {
-                    Scope::conditions($q, $actor, 'discussion', 'discussions');
-                });
-        });
+        // La visibilità della discussione è già applicata dal core (PostPolicy::find usa whereVisibleTo
+        // sulla discussione, che include il nostro DiscussionScope): non serve ripeterla qui.
     }
 }

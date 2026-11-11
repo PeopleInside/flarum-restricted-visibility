@@ -63,3 +63,9 @@ peopleinside-restricted-visibility:
       next_steps: "Next (once the job has finished): 1) disable the extension, 2) click \"Delete data\" on the extension page to drop its tables, 3) composer remove peopleinside/flarum-restricted-visibility."
       close: "Close"
       error_retry: "If the operation was interrupted (timeout), content not yet processed is still restricted: you can run it again. On large forums use the command line: php flarum peopleinside-restricted-visibility:purge"
+  api:
+    invalid_groups: "One or more groups are not valid."
+    invalid_users: "One or more users are not valid."
+    invalid_value: "Invalid value."
+    invalid_confirmation: "Confirmation missing or incorrect."
+    invalid_mode: "Invalid mode."

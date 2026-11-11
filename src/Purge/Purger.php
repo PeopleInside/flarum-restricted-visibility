@@ -47,7 +47,7 @@ class Purger
     public function purge(string $mode, ?User $actor): array
     {
         if (! in_array($mode, Constants::MODES, true)) {
-            throw new \InvalidArgumentException('Modalità non valida.');
+            throw new \InvalidArgumentException('Invalid mode.');
         }
 
         $report = ['mode' => $mode] + $this->preview() + ['affectedDiscussions' => 0, 'affectedPosts' => 0];

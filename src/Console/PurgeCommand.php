@@ -21,53 +21,53 @@ class PurgeCommand extends AbstractCommand
     {
         $this
             ->setName(Constants::ID.':purge')
-            ->setDescription('Elimina restrizioni, permessi e impostazioni di Restricted Visibility.')
-            ->addOption('mode', 'm', InputOption::VALUE_REQUIRED, 'Cosa fare dei contenuti riservati: hide | delete | public', 'hide')
-            ->addOption('actor', null, InputOption::VALUE_REQUIRED, "ID dell'utente registrato come autore del nascondimento (predefinito: primo amministratore)")
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Mostra solo il riepilogo, senza modificare nulla')
-            ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Non chiedere conferma (per script)');
+            ->setDescription('Delete restrictions, permissions and settings of Restricted Visibility.')
+            ->addOption('mode', 'm', InputOption::VALUE_REQUIRED, 'What to do with restricted content: hide | delete | public', 'hide')
+            ->addOption('actor', null, InputOption::VALUE_REQUIRED, 'ID of the user recorded as the author of the hiding (default: first administrator)')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Only show the summary, change nothing')
+            ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Do not ask for confirmation (for scripts)');
     }
 
     protected function fire(): int
     {
         $mode = (string) $this->input->getOption('mode');
         if (! in_array($mode, Constants::MODES, true)) {
-            $this->output->writeln('<error>Modalità non valida. Usa: hide, delete o public.</error>');
+            $this->output->writeln('<error>Invalid mode. Use: hide, delete or public.</error>');
 
             return self::FAILURE;
         }
 
         $p = $this->purger->preview();
         $this->output->writeln(sprintf(
-            "Contenuti riservati: %d discussioni, %d post. Collegamenti: %d gruppi, %d utenti.\nModalità: <info>%s</info>",
+            "Restricted content: %d discussions, %d posts. Links: %d groups, %d users.\nMode: <info>%s</info>",
             $p['discussions'], $p['posts'], $p['groupLinks'], $p['userLinks'], $mode
         ));
 
         if ($this->input->getOption('dry-run')) {
-            $this->output->writeln('Dry-run: nessuna modifica effettuata.');
+            $this->output->writeln('Dry run: no changes made.');
 
             return self::SUCCESS;
         }
 
         if ($mode === 'public') {
-            $this->output->writeln('<comment>ATTENZIONE: i contenuti riservati diventeranno visibili a tutti.</comment>');
+            $this->output->writeln('<comment>WARNING: restricted content will become visible to everyone.</comment>');
         } elseif ($mode === 'delete') {
-            $this->output->writeln('<comment>ATTENZIONE: i contenuti riservati saranno ELIMINATI in modo definitivo.</comment>');
+            $this->output->writeln('<comment>WARNING: restricted content will be PERMANENTLY DELETED.</comment>');
         }
-        $this->output->writeln('Operazione irreversibile. Fai prima un backup del database.');
+        $this->output->writeln('This operation is irreversible. Back up your database first.');
 
         if (! $this->input->getOption('yes')) {
             if (! $this->input->isInteractive()) {
-                $this->output->writeln('<error>Terminale non interattivo: usa --yes per confermare.</error>');
+                $this->output->writeln('<error>Non-interactive terminal: use --yes to confirm.</error>');
 
                 return self::FAILURE;
             }
             $answer = $this->getHelper('question')->ask(
                 $this->input, $this->output,
-                new Question(sprintf('Digita %s per procedere: ', Constants::CONFIRM_WORD))
+                new Question(sprintf('Type %s to proceed: ', Constants::CONFIRM_WORD))
             );
             if (! is_string($answer) || ! hash_equals(Constants::CONFIRM_WORD, trim($answer))) {
-                $this->output->writeln('Annullato.');
+                $this->output->writeln('Cancelled.');
 
                 return self::FAILURE;
             }
@@ -77,10 +77,10 @@ class PurgeCommand extends AbstractCommand
         $report = $this->purger->purge($mode, $actor);
 
         $this->output->writeln(sprintf(
-            '<info>Fatto.</info> Discussioni interessate: %d, post interessati: %d.',
+            '<info>Done.</info> Discussions affected: %d, posts affected: %d.',
             $report['affectedDiscussions'], $report['affectedPosts']
         ));
-        $this->output->writeln('Ora disattiva l\'estensione, poi usa "Elimina dati" dal pannello admin (o migrate:reset) per rimuovere anche le tabelle.');
+        $this->output->writeln('Now disable the extension, then use "Delete all extension data" in the admin panel (or migrate:reset) to also remove the tables.');
 
         return self::SUCCESS;
     }

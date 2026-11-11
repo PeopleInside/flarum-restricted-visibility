@@ -210,7 +210,7 @@ Go to:
 
 Choose what should happen to restricted content and enter the confirmation word:
 
-`ELIMINA`
+`DELETE`
 
 The available modes are:
 
@@ -263,7 +263,7 @@ Available options:
 | `--mode` or `-m` | Selects what happens to restricted content. Defaults to `hide`. |
 | `--actor` | User ID recorded as the actor performing the hide operation. Defaults to the first administrator. |
 | `--dry-run` | Displays a summary without applying changes. |
-| `--yes` or `-y` | Skips the interactive confirmation. Without this option, enter `ELIMINA` when prompted. |
+| `--yes` or `-y` | Skips the interactive confirmation. Without this option, enter `DELETE` when prompted. |
 
 For large forums, the command-line method is recommended to avoid web request timeouts.
 

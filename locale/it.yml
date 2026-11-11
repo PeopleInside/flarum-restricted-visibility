@@ -63,3 +63,9 @@ peopleinside-restricted-visibility:
       next_steps: "Ora: 1) disattiva l'estensione, 2) clicca \"Elimina dati\" nella pagina dell'estensione per rimuovere le tabelle, 3) composer remove peopleinside/flarum-restricted-visibility."
       close: "Chiudi"
       error_retry: "Se l'operazione è stata interrotta (timeout), i contenuti non ancora trattati sono ancora riservati: puoi rilanciarla. Su forum grandi usa il comando da terminale: php flarum peopleinside-restricted-visibility:purge"
+  api:
+    invalid_groups: "Uno o più gruppi non sono validi."
+    invalid_users: "Uno o più utenti non sono validi."
+    invalid_value: "Valore non valido."
+    invalid_confirmation: "Conferma mancante o errata."
+    invalid_mode: "Modalità non valida."
