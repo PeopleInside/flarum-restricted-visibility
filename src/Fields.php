@@ -6,6 +6,10 @@ use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Database\AbstractModel;
 
+/**
+ * I getter non leggono il database direttamente: passano da Repository::defer*(), che accoda il
+ * modello e fa caricare in blocco tutti quelli della stessa risposta (qualunque endpoint la produca).
+ */
 final class Fields
 {
     /** Campi comuni a Post e Discussion. */
@@ -17,7 +21,7 @@ final class Fields
         return [
             // Lo vede chiunque possa vedere il contenuto (se lo vede, sa che è riservato).
             Schema\Boolean::make('isRestricted')
-                ->get(fn (AbstractModel $m) => Repository::isRestricted($m)),
+                ->get(fn (AbstractModel $m) => Repository::defer($m, fn () => Repository::isRestricted($m))),
 
             Schema\Boolean::make('canRestrictVisibility')
                 ->get($mayWrite),
@@ -27,7 +31,7 @@ final class Fields
                 ->nullable()
                 ->writable($mayWrite)
                 ->visible($mayInspect)
-                ->get(fn (AbstractModel $m) => Repository::rows($m)['groups'])
+                ->get(fn (AbstractModel $m) => Repository::defer($m, fn () => Repository::rows($m)['groups']))
                 ->set(function (AbstractModel $m, $value, Context $c) {
                     // Valida ora; la scrittura avviene dentro save() (ModelHooks), prima delle notifiche.
                     ModelHooks::ensure($m);
@@ -39,7 +43,7 @@ final class Fields
                 ->nullable()
                 ->writable($mayWrite)
                 ->visible($mayInspect)
-                ->get(fn (AbstractModel $m) => Repository::rows($m)['users'])
+                ->get(fn (AbstractModel $m) => Repository::defer($m, fn () => Repository::rows($m)['users']))
                 ->set(function (AbstractModel $m, $value, Context $c) {
                     ModelHooks::ensure($m);
                     Pending::setActor($m, $c->getActor());
@@ -49,7 +53,7 @@ final class Fields
             // Solo lettura: nomi per l'interfaccia, limitati agli utenti che l'attore può vedere.
             Schema\Arr::make('restrictedUsers')
                 ->visible($mayInspect)
-                ->get(fn (AbstractModel $m, Context $c) => Repository::userInfo(Repository::rows($m)['users'], $c->getActor())),
+                ->get(fn (AbstractModel $m, Context $c) => Repository::deferUserInfo($m, $c->getActor())),
         ];
     }
 }

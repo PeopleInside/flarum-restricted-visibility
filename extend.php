@@ -41,8 +41,11 @@ return [
     (new Extend\ModelVisibility(Post::class))
         ->scope(Access\PostScope::class),
 
-    // Campi API. Prima della serializzazione si precarica in blocco ciò che serve a tutta la pagina
-    // (righe di restrizione, conteggi, nomi dei destinatari): niente query per ogni modello.
+    // Campi API. Niente query per ogni modello, in due livelli:
+    //  1. i getter dei campi sono differiti (Repository::defer*): il serializzatore li risolve dopo
+    //     aver raccolto tutti i modelli, quindi righe, conteggi e nomi si caricano in blocco anche
+    //     per ricerca, relazioni incluse e notifiche (dove non c'è un endpoint Index/Show di Discussion/Post);
+    //  2. su Index/Show si precarica comunque prima della serializzazione (include i post già caricati).
     (new Extend\ApiResource(Resource\PostResource::class))
         ->fields(fn () => Fields::build('post'))
         ->endpoint([Endpoint\Index::class, Endpoint\Show::class], fn ($endpoint) => $endpoint->after(
@@ -56,7 +59,7 @@ return [
     (new Extend\ApiResource(Resource\DiscussionResource::class))
         ->fields(fn () => array_merge(Fields::build('discussion'), [
             Schema\Integer::make('restrictedPostCount')
-                ->get(fn (Discussion $d, Context $c) => Repository::postCount($d, $c->getActor())),
+                ->get(fn (Discussion $d, Context $c) => Repository::deferPostCount($d, $c->getActor())),
         ]))
         ->endpoint([Endpoint\Index::class, Endpoint\Show::class], fn ($endpoint) => $endpoint->after(
             function (Context $context, mixed $data) {
