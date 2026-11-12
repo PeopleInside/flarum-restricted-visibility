@@ -167,3 +167,4 @@ Use non-admin accounts, each with one permission: A (*create new private*), B (*
 ## Performance
 
 - [ ] With query logging on, an admin opening a discussion list or a long discussion with many restricted posts runs a constant number of queries for restriction rows and recipient names (no query per post).
+- [ ] Same check for discussions serialised outside Index/Show: a search (`filter[q]`), the notifications list, and any endpoint that includes discussions or posts as a relationship. The number of queries for restriction rows, post counts and recipient names must stay constant as the number of discussions grows (no query per discussion).

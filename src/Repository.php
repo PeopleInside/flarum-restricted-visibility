@@ -2,6 +2,7 @@
 
 namespace PeopleInside\RestrictedVisibility;
 
+use Closure;
 use Flarum\Database\AbstractModel;
 use Flarum\Discussion\Discussion;
 use Flarum\Foundation\ValidationException;
@@ -28,7 +29,140 @@ final class Repository
     /** @var array<string, array{id: int, name: string, avatarUrl: ?string}|null> "actorId:userId" => info (null = non visibile) */
     private static array $userCache = [];
 
+    /**
+     * Code di caricamento differito. I getter dei campi API non caricano subito: si "prenotano" e
+     * restituiscono una Closure, che il serializzatore di Flarum esegue SOLO dopo aver aggiunto tutti
+     * i modelli del documento (principali e inclusi). Alla prima Closure eseguita si carica in blocco
+     * tutto ciò che è in coda: una query per tipo di dato, qualunque endpoint serializzi le discussioni
+     * (ricerca, relazioni incluse, notifiche, ...), non solo Index/Show.
+     *
+     * @var array<int, true> discussion_id => true
+     */
+    private static array $queuedDiscussions = [];
+
+    /** @var array<int, true> discussion_id (dei post) => true */
+    private static array $queuedPostDiscussions = [];
+
+    /** @var array<int, array<int, true>> actor_id => discussion_id => true */
+    private static array $queuedCounts = [];
+
+    /** @var array<int, array<int, true>> actor_id => user_id => true */
+    private static array $queuedUsers = [];
+
     private const EMPTY = ['groups' => [], 'users' => [], 'restricted' => false];
+
+    // ------------------------------------------------------ caricamento differito
+
+    /**
+     * Da usare nei getter dei campi API. Se i dati del modello sono già in cache restituisce subito
+     * $resolve(); altrimenti mette il modello in coda e restituisce una Closure che, quando il
+     * serializzatore la esegue, carica in blocco TUTTI i modelli in coda e poi chiama $resolve().
+     * Anche fuori dal serializzatore il risultato resta corretto (la coda ha al massimo un elemento).
+     */
+    public static function defer(AbstractModel $model, Closure $resolve): mixed
+    {
+        if (! self::enqueueRows($model)) {
+            return $resolve();
+        }
+
+        return function () use ($resolve) {
+            self::flushRowQueues();
+
+            return $resolve();
+        };
+    }
+
+    /**
+     * Come defer(), per l'elenco dei destinatari con nome e avatar ($actor vede solo gli utenti che può vedere).
+     * Due livelli: prima si caricano le righe di restrizione, poi (al passaggio successivo del
+     * serializzatore, quando tutti i modelli hanno già indicato gli utenti che servono) gli utenti.
+     */
+    public static function deferUserInfo(AbstractModel $model, User $actor): mixed
+    {
+        return self::defer($model, function () use ($model, $actor) {
+            $ids = self::rows($model)['users'];
+            if ($ids === []) {
+                return [];
+            }
+            if (! self::enqueueUsers($ids, $actor)) {
+                return self::userInfo($ids, $actor);
+            }
+
+            return fn () => self::userInfo($ids, $actor);
+        });
+    }
+
+    /** Come defer(), per il conteggio dei post riservati visibili a $actor (badge). */
+    public static function deferPostCount(Discussion $discussion, User $actor): mixed
+    {
+        $id = (int) $discussion->id;
+        if ($id <= 0) {
+            return 0;
+        }
+        $key = (int) $actor->id;
+        if (isset(self::$counts[$key][$id])) {
+            return self::$counts[$key][$id];
+        }
+        self::$queuedCounts[$key][$id] = true;
+
+        return fn () => self::postCount($discussion, $actor);
+    }
+
+    /** @return bool true se il modello è stato messo in coda (dati non ancora in cache) */
+    private static function enqueueRows(AbstractModel $model): bool
+    {
+        $id = (int) $model->getKey();
+        if ($id <= 0) {
+            return false;
+        }
+
+        if ($model instanceof Post) {
+            $did = (int) $model->discussion_id;
+            if ($did <= 0 || isset(self::$postRows[$did])) {
+                return false;
+            }
+            self::$queuedPostDiscussions[$did] = true;
+
+            return true;
+        }
+
+        if (isset(self::$discussionRows[$id])) {
+            return false;
+        }
+        self::$queuedDiscussions[$id] = true;
+
+        return true;
+    }
+
+    /** @param int[] $ids @return bool true se almeno un utente non è ancora in cache (e quindi è in coda) */
+    private static function enqueueUsers(array $ids, User $actor): bool
+    {
+        $key = (int) $actor->id;
+        $queued = false;
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && ! array_key_exists($key.':'.$id, self::$userCache)) {
+                self::$queuedUsers[$key][$id] = true;
+                $queued = true;
+            }
+        }
+
+        return $queued;
+    }
+
+    private static function flushRowQueues(): void
+    {
+        if (self::$queuedDiscussions !== []) {
+            $ids = array_keys(self::$queuedDiscussions);
+            self::$queuedDiscussions = [];
+            self::loadDiscussions($ids);
+        }
+        if (self::$queuedPostDiscussions !== []) {
+            $ids = array_keys(self::$queuedPostDiscussions);
+            self::$queuedPostDiscussions = [];
+            self::loadPostsOfDiscussions($ids);
+        }
+    }
 
     // ---------------------------------------------------------------- lettura
 
@@ -61,7 +195,7 @@ final class Repository
             if ($did <= 0) {
                 return self::EMPTY;
             }
-            self::loadPostsOfDiscussion($did);
+            self::loadPostsOfDiscussions([$did]);
 
             return self::$postRows[$did][$id] ?? self::EMPTY;
         }
@@ -137,6 +271,10 @@ final class Repository
     public static function preloadUserInfo(array $ids, User $actor): void
     {
         $key = (int) $actor->id;
+        // Include gli utenti già prenotati da deferUserInfo(): una sola query per tutti.
+        $ids = array_merge($ids, array_keys(self::$queuedUsers[$key] ?? []));
+        unset(self::$queuedUsers[$key]);
+
         $missing = [];
         foreach (array_unique(array_map('intval', $ids)) as $id) {
             if ($id > 0 && ! array_key_exists($key.':'.$id, self::$userCache)) {
@@ -189,11 +327,7 @@ final class Repository
             self::loadDiscussions(array_keys($discussions));
             self::preloadPostCounts(array_keys($discussions), $actor);
         }
-        foreach (array_unique(array_map(fn (Post $p) => (int) $p->discussion_id, $posts)) as $did) {
-            if ($did > 0) {
-                self::loadPostsOfDiscussion($did);
-            }
-        }
+        self::loadPostsOfDiscussions(array_map(fn (Post $p) => (int) $p->discussion_id, $posts));
 
         // Solo chi può ispezionare vede i destinatari: per gli altri non si carica nulla.
         $userIds = [];
@@ -205,43 +339,60 @@ final class Repository
         self::preloadUserInfo($userIds, $actor);
     }
 
-    private static function loadPostsOfDiscussion(int $did): void
+    /**
+     * Carica in blocco le righe di restrizione dei post di più discussioni (3 query in totale,
+     * non 3 per discussione).
+     *
+     * @param int[] $dids
+     */
+    private static function loadPostsOfDiscussions(array $dids): void
     {
-        if (isset(self::$postRows[$did])) {
+        $dids = array_filter(
+            array_unique(array_map('intval', $dids)),
+            fn (int $did) => $did > 0 && ! isset(self::$postRows[$did])
+        );
+        if ($dids === []) {
             return;
         }
+        $dids = array_values($dids);
+        foreach ($dids as $did) {
+            self::$postRows[$did] = [];
+        }
+
         $db = Db::conn();
+        /** @var array<int, array<int, array{groups?: int[], users?: int[]}>> $map discussion_id => post_id => righe */
         $map = [];
 
         $groups = $db->table('restricted_post_groups')
             ->join('posts', 'posts.id', '=', 'restricted_post_groups.post_id')
-            ->where('posts.discussion_id', $did)
-            ->get(['restricted_post_groups.post_id as pid', 'restricted_post_groups.group_id as gid']);
+            ->whereIn('posts.discussion_id', $dids)
+            ->get(['posts.discussion_id as did', 'restricted_post_groups.post_id as pid', 'restricted_post_groups.group_id as gid']);
         foreach ($groups as $r) {
-            $map[(int) $r->pid]['groups'][] = (int) $r->gid;
+            $map[(int) $r->did][(int) $r->pid]['groups'][] = (int) $r->gid;
         }
 
         $users = $db->table('restricted_post_users')
             ->join('posts', 'posts.id', '=', 'restricted_post_users.post_id')
-            ->where('posts.discussion_id', $did)
-            ->get(['restricted_post_users.post_id as pid', 'restricted_post_users.user_id as uid']);
+            ->whereIn('posts.discussion_id', $dids)
+            ->get(['posts.discussion_id as did', 'restricted_post_users.post_id as pid', 'restricted_post_users.user_id as uid']);
         foreach ($users as $r) {
-            $map[(int) $r->pid]['users'][] = (int) $r->uid;
+            $map[(int) $r->did][(int) $r->pid]['users'][] = (int) $r->uid;
         }
 
         // Marcatore: il post è riservato anche se non ha più destinatari.
         $markers = $db->table('restricted_posts')
             ->join('posts', 'posts.id', '=', 'restricted_posts.post_id')
-            ->where('posts.discussion_id', $did)
-            ->get(['restricted_posts.post_id as pid']);
+            ->whereIn('posts.discussion_id', $dids)
+            ->get(['posts.discussion_id as did', 'restricted_posts.post_id as pid']);
         foreach ($markers as $r) {
-            $map[(int) $r->pid] ??= [];
+            $map[(int) $r->did][(int) $r->pid] ??= [];
         }
 
-        foreach ($map as $pid => $row) {
-            $map[$pid] = ['groups' => $row['groups'] ?? [], 'users' => $row['users'] ?? [], 'restricted' => true];
+        foreach ($map as $did => $posts) {
+            foreach ($posts as $pid => $row) {
+                self::$postRows[$did][$pid] = ['groups' => $row['groups'] ?? [], 'users' => $row['users'] ?? [], 'restricted' => true];
+            }
         }
-        self::$postRows[$did] = $map;
     }
 
     /** @param int[] $ids */
@@ -277,7 +428,8 @@ final class Repository
             return 0;
         }
         if (! isset(self::$counts[(int) $actor->id][$id])) {
-            self::preloadPostCounts([$id], $actor);
+            // Insieme alla discussione richiesta si caricano tutte quelle prenotate da deferPostCount().
+            self::preloadPostCounts([$id, ...array_keys(self::$queuedCounts[(int) $actor->id] ?? [])], $actor);
         }
 
         return self::$counts[(int) $actor->id][$id] ?? 0;
@@ -298,6 +450,7 @@ final class Repository
         }
         foreach ($ids as $id) {
             self::$counts[$key][$id] = 0;
+            unset(self::$queuedCounts[$key][$id]);
         }
 
         $rows = Post::query()
